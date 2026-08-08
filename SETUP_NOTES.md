@@ -1,5 +1,7 @@
 # Setup Notes
 
+> **Historical environment archive.** Values and deployment details below describe the earlier supplier prototype and previous program ID. Use `README.md`, the checked-in environment examples, and `AUDIT_REPORT.md` for the current build.
+
 ## Environment detected
 
 - Node: 24.14.0

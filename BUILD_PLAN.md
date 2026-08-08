@@ -1,5 +1,22 @@
 # Compart Build Plan
 
+## Current delivery status
+
+- [x] Unlisted, wallet-scoped rooms with one-time participant invitations.
+- [x] Circle devnet USDC escrow; SOL is used only for transaction fees.
+- [x] Organizer and participant workflows with readable transaction feedback.
+- [x] Private maximums stored and matched in MagicBlock's Private ER.
+- [x] Organizer-selected goal inside a public approved range and equal-share clearing.
+- [x] Public Solana settlement, organizer payout, participant excess-refund claims, and receipts.
+- [x] Organizer-initiated failed-room cancellation that atomically returns full deposits.
+- [x] Wallet-scoped active-room and activity recovery after reload.
+- [x] Current source, generated interface, checked-in binary, and deployed devnet program aligned.
+- [ ] Run and record one fresh two-wallet hosted acceptance test for the current goal-range workflow.
+
+## Archived supplier design
+
+> **Historical design archive.** This file records the earlier supplier-quote concept and is retained for decision history only. It is not the current product workflow or a current verification claim. The source of truth is `README.md`; the current audit status is in `AUDIT_REPORT.md`.
+
 ## Product decision
 
 Compart is a **private group-purchasing protocol**, beginning with one focused

@@ -48,7 +48,7 @@ export default function LandingPage() {
         <div className="how-grid">
           <article className="how-card"><span className="how-number">01</span><span className="how-icon"><UsersIcon size={20} /></span><h3>Start a room</h3><p>Set the group size, dates, and the public deposit everyone can afford.</p></article>
           <article className="how-card"><span className="how-number">02</span><span className="how-icon orange"><LockIcon size={20} /></span><h3>Commit privately</h3><p>Each person sets their own maximum. The group sees progress, never personal limits.</p></article>
-          <article className="how-card"><span className="how-number">03</span><span className="how-icon blue"><CheckIcon size={20} /></span><h3>Clear together</h3><p>Hosts compete for the whole group. If the numbers work, everyone settles at one fair price.</p></article>
+          <article className="how-card"><span className="how-number">03</span><span className="how-icon blue"><CheckIcon size={20} /></span><h3>Clear together</h3><p>After the deadline, the organizer selects an approved goal. If enough private limits support the equal share, the plan settles.</p></article>
         </div>
       </section>
 
@@ -57,7 +57,7 @@ export default function LandingPage() {
         <div className="docs-grid">
           <a className="doc-card featured" href="https://github.com/Techkeyy/compart/blob/main/README.md" target="_blank" rel="noreferrer"><span className="doc-label">START HERE</span><strong>Product overview</strong><p>What Compart is, who it is for, and why the first room is group accommodation.</p><span className="doc-arrow">↗</span></a>
           <a className="doc-card" href="https://github.com/Techkeyy/compart/blob/main/ARCHITECTURE.md" target="_blank" rel="noreferrer"><span className="doc-label">PROTOCOL</span><strong>Architecture</strong><p>How public commitments and private budgets work together.</p><span className="doc-arrow">↗</span></a>
-          <a className="doc-card" href="https://github.com/Techkeyy/compart/blob/main/HOSTED_DEVNET_PROOF.md" target="_blank" rel="noreferrer"><span className="doc-label">VERIFIED</span><strong>Hosted proof</strong><p>See the two-wallet privacy denial, settlement, refunds, and receipts.</p><span className="doc-arrow">↗</span></a>
+          <a className="doc-card" href="https://github.com/Techkeyy/compart/blob/main/AUDIT_REPORT.md" target="_blank" rel="noreferrer"><span className="doc-label">AUDITED</span><strong>Verification report</strong><p>See the current build, test, deployment, and known-limitation checks.</p><span className="doc-arrow">↗</span></a>
           <a className="doc-card" href="https://docs.magicblock.gg/pages/ephemeral-rollups-ers/how-to-guide/quickstart" target="_blank" rel="noreferrer"><span className="doc-label">MAGICBLOCK</span><strong>Ephemeral Rollups</strong><p>The official MagicBlock guide behind the live room experience.</p><span className="doc-arrow">↗</span></a>
         </div>
       </section>

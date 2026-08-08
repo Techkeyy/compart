@@ -81,7 +81,6 @@ const campaignSeed = text("campaign");
 const treasurySeed = text("treasury");
 const bidSeed = text("bid");
 const privateBudgetSeed = text("private-budget");
-const offerSeed = text("offer");
 const receiptSeed = text("receipt");
 const accessSeed = text("access");
 const inviteSeed = text("invite");
@@ -298,14 +297,6 @@ export type CampaignSnapshot = {
   paymentDecimals: number;
 };
 
-export type SupplierOfferSnapshot = {
-  address: string;
-  supplier: string;
-  quantity: number;
-  unitPrice: bigint;
-  active: boolean;
-};
-
 export type ParticipantPosition = {
   allocation: number;
   refundOwed: bigint;
@@ -428,18 +419,6 @@ export function normalizeCampaignAddress(value: string): string {
   return new PublicKey(value.trim()).toBase58();
 }
 
-function decodeOffer(address: PublicKey, data: Uint8Array): SupplierOfferSnapshot {
-  if (data.length < 92) throw new Error("A supplier offer has an unexpected layout.");
-  const view = accountView(data);
-  return {
-    address: address.toBase58(),
-    supplier: publicKeyAt(data, 40),
-    quantity: view.getUint16(72, true),
-    unitPrice: view.getBigUint64(74, true),
-    active: Boolean(data[82]),
-  };
-}
-
 function decodeBid(data: Uint8Array): ParticipantPosition {
   if (data.length < 105) throw new Error("The commitment account has an unexpected layout.");
   const view = accountView(data);
@@ -457,26 +436,13 @@ export async function readCampaignRoom(
   selectedCampaign?: PublicKey | string | null,
 ): Promise<{
   campaign: CampaignSnapshot;
-  offers: SupplierOfferSnapshot[];
 } | null> {
   const campaignAddress = resolveCampaignAddress(selectedCampaign);
   if (!campaignAddress) return null;
   const campaignInfo = await baseConnection.getAccountInfo(campaignAddress, "confirmed");
   if (!campaignInfo) return null;
 
-  const offerAccounts = await baseConnection.getProgramAccounts(PROGRAM_ID, {
-    commitment: "confirmed",
-    filters: [
-      { dataSize: 92 },
-      { memcmp: { offset: 8, bytes: campaignAddress.toBase58() } },
-    ],
-  });
-  const offers = offerAccounts
-    .map(({ pubkey, account }) => decodeOffer(pubkey, account.data))
-    .filter((offer) => offer.active)
-    .sort((a, b) => Number(a.unitPrice - b.unitPrice));
-
-  return { campaign: decodeCampaign(campaignAddress, campaignInfo.data), offers };
+  return { campaign: decodeCampaign(campaignAddress, campaignInfo.data) };
 }
 
 export async function readCampaignBids(
@@ -757,73 +723,6 @@ export async function createPrivateCommitment(
   };
 }
 
-export async function postSupplierOffer(
-  wallet: BrowserWallet,
-  quantity: number,
-  unitPrice: bigint,
-  selectedCampaign?: PublicKey | string | null,
-): Promise<string> {
-  if (!wallet.publicKey) throw new Error("Connect a Solana wallet first.");
-  const campaignAddress = resolveCampaignAddress(selectedCampaign);
-  if (!campaignAddress) throw new Error("Choose a live campaign first.");
-  if (quantity < 1 || quantity > 65_535) throw new Error("Enter a valid group size.");
-  if (unitPrice < 1n) throw new Error("Enter a valid per-person quote.");
-
-  const supplier = wallet.publicKey;
-  const [offer] = PublicKey.findProgramAddressSync(
-    [offerSeed, campaignAddress.toBytes(), supplier.toBytes()],
-    PROGRAM_ID,
-  );
-  const [access] = PublicKey.findProgramAddressSync(
-    [accessSeed, campaignAddress.toBytes(), supplier.toBytes()],
-    PROGRAM_ID,
-  );
-  const instruction = new TransactionInstruction({
-    programId: PROGRAM_ID,
-    keys: [
-      { pubkey: supplier, isSigner: true, isWritable: true },
-      { pubkey: campaignAddress, isSigner: false, isWritable: true },
-      { pubkey: access, isSigner: false, isWritable: false },
-      { pubkey: offer, isSigner: false, isWritable: true },
-      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
-    ],
-    data: instructionData(
-      await discriminator("post_supplier_offer"),
-      u16Le(quantity),
-      u64Le(unitPrice),
-    ),
-  });
-  return sendWithWallet(baseConnection, wallet, new Transaction().add(instruction));
-}
-
-export async function grantRoomAccess(
-  wallet: BrowserWallet,
-  memberAddress: string,
-  role: "participant" | "host",
-  selectedCampaign?: PublicKey | string | null,
-): Promise<string> {
-  if (!wallet.publicKey) throw new Error("Connect the organizer wallet first.");
-  const campaignAddress = resolveCampaignAddress(selectedCampaign);
-  if (!campaignAddress) throw new Error("Choose a room first.");
-  const member = new PublicKey(memberAddress.trim());
-  const [access] = PublicKey.findProgramAddressSync(
-    [accessSeed, campaignAddress.toBytes(), member.toBytes()],
-    PROGRAM_ID,
-  );
-  const instruction = new TransactionInstruction({
-    programId: PROGRAM_ID,
-    keys: [
-      { pubkey: wallet.publicKey, isSigner: true, isWritable: true },
-      { pubkey: campaignAddress, isSigner: false, isWritable: false },
-      { pubkey: member, isSigner: false, isWritable: false },
-      { pubkey: access, isSigner: false, isWritable: true },
-      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
-    ],
-    data: instructionData(await discriminator("grant_room_access"), u8(role === "participant" ? 1 : 2)),
-  });
-  return sendWithWallet(baseConnection, wallet, new Transaction().add(instruction));
-}
-
 function inviteSecretToUrl(secret: Uint8Array): string {
   let binary = "";
   secret.forEach((value) => { binary += String.fromCharCode(value); });
@@ -839,7 +738,6 @@ function inviteSecretFromUrl(value: string): Uint8Array {
 
 export async function createClaimableInvite(
   wallet: BrowserWallet,
-  role: "participant" | "host",
   selectedCampaign?: PublicKey | string | null,
 ): Promise<{ signature: string; invite: string; secret: string }> {
   if (!wallet.publicKey) throw new Error("Connect the organizer wallet first.");
@@ -863,7 +761,7 @@ export async function createClaimableInvite(
     data: instructionData(
       await discriminator("create_claimable_invite"),
       u64Le(nonce),
-      u8(role === "participant" ? 1 : 2),
+      u8(1),
       secretHash,
     ),
   });
@@ -968,7 +866,7 @@ export async function claimPrototypeReceipt(
 }
 
 export type OrganizerProgress =
-  | "selecting-offer"
+  | "selecting-goal"
   | "delegating-room"
   | "reading-private-room"
   | "computing-allocations"
@@ -992,39 +890,6 @@ export async function selectGoal(
     ],
     data: instructionData(await discriminator("select_goal"), u64Le(goal)),
   })));
-}
-
-export async function selectWinningOffer(
-  wallet: BrowserWallet,
-  selectedCampaign: PublicKey | string,
-): Promise<string> {
-  if (!wallet.publicKey) throw new Error("Connect the organizer wallet first.");
-  const campaignAddress = resolveCampaignAddress(selectedCampaign);
-  if (!campaignAddress) throw new Error("Choose a room first.");
-  const room = await readCampaignRoom(campaignAddress);
-  if (!room) throw new Error("The room could not be loaded.");
-  if (room.campaign.creator !== wallet.publicKey.toBase58()) {
-    throw new Error("Only this room's organizer can run matching.");
-  }
-  if (Math.floor(Date.now() / 1000) < room.campaign.deadline) {
-    throw new Error("The commitment deadline has not been reached yet.");
-  }
-  if (!room.offers.length) throw new Error("At least one host quote is required.");
-
-  const instruction = new TransactionInstruction({
-    programId: PROGRAM_ID,
-    keys: [
-      { pubkey: wallet.publicKey, isSigner: true, isWritable: false },
-      { pubkey: campaignAddress, isSigner: false, isWritable: true },
-      ...room.offers.map((offer) => ({
-        pubkey: new PublicKey(offer.address),
-        isSigner: false,
-        isWritable: false,
-      })),
-    ],
-    data: instructionData(await discriminator("select_winning_offer")),
-  });
-  return sendWithWallet(baseConnection, wallet, new Transaction().add(instruction));
 }
 
 export async function settleReadyCampaign(
@@ -1092,6 +957,29 @@ export async function cancelStalledCampaign(
     throw new Error("Cancellation unlocks when the commitment deadline is reached.");
   }
 
+  const signatures: string[] = [];
+  const campaignInfo = await baseConnection.getAccountInfo(campaignAddress, "confirmed");
+  if (!campaignInfo) throw new Error("The room account is unavailable.");
+  if (campaignInfo.owner.equals(PROGRAM_ID)) {
+    signatures.push(await sendWithWallet(baseConnection, wallet, new Transaction().add(new TransactionInstruction({
+      programId: PROGRAM_ID,
+      keys: [
+        { pubkey: wallet.publicKey, isSigner: true, isWritable: true },
+        { pubkey: delegateBufferPdaFromDelegatedAccountAndOwnerProgram(campaignAddress, PROGRAM_ID), isSigner: false, isWritable: true },
+        { pubkey: delegationRecordPdaFromDelegatedAccount(campaignAddress), isSigner: false, isWritable: true },
+        { pubkey: delegationMetadataPdaFromDelegatedAccount(campaignAddress), isSigner: false, isWritable: true },
+        { pubkey: campaignAddress, isSigner: false, isWritable: true },
+        { pubkey: TEE_VALIDATOR, isSigner: false, isWritable: false },
+        { pubkey: PROGRAM_ID, isSigner: false, isWritable: false },
+        { pubkey: DELEGATION_PROGRAM_ID, isSigner: false, isWritable: false },
+        { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+      ],
+      data: instructionData(await discriminator("delegate_campaign"), u64Le(room.campaign.campaignId)),
+    }))));
+  } else if (!campaignInfo.owner.equals(DELEGATION_PROGRAM_ID)) {
+    throw new Error("The room account has an unexpected owner.");
+  }
+
   await verifyTeeRpcIntegrity(TEE_RPC);
   const auth = await getAuthToken(TEE_RPC, wallet.publicKey, async (message) =>
     walletSignature(await wallet.signMessage(message, "utf8")),
@@ -1101,6 +989,11 @@ export async function cancelStalledCampaign(
     wsEndpoint: `${TEE_WS}?token=${token}`,
     commitment: "confirmed",
   });
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    if (await privateConnection.getAccountInfo(campaignAddress, "confirmed")) break;
+    if (attempt === 19) throw new Error("The private room did not become ready for cancellation.");
+    await new Promise((resolve) => window.setTimeout(resolve, 800));
+  }
   const privateBids = await privateConnection.getProgramAccounts(PROGRAM_ID, {
     commitment: "confirmed",
     filters: [
@@ -1114,26 +1007,19 @@ export async function cancelStalledCampaign(
   const bids = privateBids
     .map(({ pubkey, account }) => decodeBidSnapshot(pubkey, account.data))
     .sort((a, b) => a.address.localeCompare(b.address));
-  const signatures: string[] = [];
-  signatures.push(await sendWithWallet(privateConnection, wallet, new Transaction().add(new TransactionInstruction({
-    programId: PROGRAM_ID,
-    keys: [
-      { pubkey: wallet.publicKey, isSigner: true, isWritable: false },
-      { pubkey: campaignAddress, isSigner: false, isWritable: true },
-      { pubkey: PublicKey.findProgramAddressSync([treasurySeed, campaignAddress.toBytes()], PROGRAM_ID)[0], isSigner: false, isWritable: true },
-      { pubkey: DEVNET_USDC_MINT, isSigner: false, isWritable: false },
-      { pubkey: associatedTokenAddress(PublicKey.findProgramAddressSync([treasurySeed, campaignAddress.toBytes()], PROGRAM_ID)[0], DEVNET_USDC_MINT), isSigner: false, isWritable: true },
-      { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
-      ...bids.flatMap((bid) => {
-        const bidAddress = new PublicKey(bid.address);
-        return [
-          { pubkey: bidAddress, isSigner: false, isWritable: true },
-          { pubkey: associatedTokenAddress(new PublicKey(bid.buyer), DEVNET_USDC_MINT), isSigner: false, isWritable: true },
-        ];
-      }),
-    ],
-    data: instructionData(await discriminator("cancel_campaign")),
-  }))));
+
+  if (room.campaign.status !== "allocations-computed") {
+    signatures.push(await sendWithWallet(privateConnection, wallet, new Transaction().add(new TransactionInstruction({
+      programId: PROGRAM_ID,
+      keys: [
+        { pubkey: wallet.publicKey, isSigner: true, isWritable: false },
+        { pubkey: campaignAddress, isSigner: false, isWritable: true },
+        ...bids.map((bid) => ({ pubkey: new PublicKey(bid.address), isSigner: false, isWritable: true })),
+      ],
+      data: instructionData(await discriminator("prepare_cancellation")),
+    }))));
+  }
+
   for (const bid of bids) {
     signatures.push(await sendWithWallet(privateConnection, wallet, new Transaction().add(new TransactionInstruction({
       programId: PROGRAM_ID,
@@ -1156,6 +1042,35 @@ export async function cancelStalledCampaign(
       { pubkey: MAGIC_CONTEXT_ID, isSigner: false, isWritable: true },
     ],
     data: instructionData(await discriminator("undelegate_campaign")),
+  }))));
+
+  const accountsToPublish = [campaignAddress, ...bids.map((bid) => new PublicKey(bid.address))];
+  for (let attempt = 0; attempt < 30; attempt += 1) {
+    const accounts = await baseConnection.getMultipleAccountsInfo(accountsToPublish, "confirmed");
+    if (accounts.every((account) => account?.owner.equals(PROGRAM_ID))) break;
+    if (attempt === 29) throw new Error("Cancellation state is still publishing to Solana.");
+    await new Promise((resolve) => window.setTimeout(resolve, 1_000));
+  }
+
+  const [treasury] = PublicKey.findProgramAddressSync([treasurySeed, campaignAddress.toBytes()], PROGRAM_ID);
+  signatures.push(await sendWithWallet(baseConnection, wallet, new Transaction().add(new TransactionInstruction({
+    programId: PROGRAM_ID,
+    keys: [
+      { pubkey: wallet.publicKey, isSigner: true, isWritable: false },
+      { pubkey: campaignAddress, isSigner: false, isWritable: true },
+      { pubkey: treasury, isSigner: false, isWritable: true },
+      { pubkey: DEVNET_USDC_MINT, isSigner: false, isWritable: false },
+      { pubkey: associatedTokenAddress(treasury, DEVNET_USDC_MINT), isSigner: false, isWritable: true },
+      { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+      ...bids.flatMap((bid) => {
+        const bidAddress = new PublicKey(bid.address);
+        return [
+          { pubkey: bidAddress, isSigner: false, isWritable: true },
+          { pubkey: associatedTokenAddress(new PublicKey(bid.buyer), DEVNET_USDC_MINT), isSigner: false, isWritable: true },
+        ];
+      }),
+    ],
+    data: instructionData(await discriminator("cancel_campaign")),
   }))));
   return signatures;
 }
@@ -1183,7 +1098,7 @@ export async function runOrganizerSettlement(
 
   const signatures: string[] = [];
   if (room.campaign.status === "open") {
-    onProgress?.("selecting-offer");
+    onProgress?.("selecting-goal");
     signatures.push(await selectGoal(wallet, finalGoal, campaignAddress));
     room = await readCampaignRoom(campaignAddress);
     if (!room) throw new Error("The selected quote could not be reloaded.");

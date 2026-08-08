@@ -9,9 +9,6 @@
   "scripts": {
     "build": "npm --prefix app run build",
     "test:unit": "cargo test -p compartido-market --lib",
-    "test:local": "node tests/local-lifecycle.js",
-    "test:private-local": "node tests/private-er-lifecycle.js",
-    "test:hosted": "node tests/hosted-devnet-lifecycle.js",
     "verify": "npm run test:unit && npm run build"
   },
   "devDependencies": {

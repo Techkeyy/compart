@@ -14,6 +14,73 @@ export type CompartidoMarket = {
   },
   "instructions": [
     {
+      "name": "cancelCampaign",
+      "docs": [
+        "Base-layer completion of a prepared cancellation. It is available only",
+        "to the organizer after the deadline, returns every full deposit, and can",
+        "never pay the organizer."
+      ],
+      "discriminator": [
+        66,
+        10,
+        32,
+        138,
+        122,
+        36,
+        134,
+        202
+      ],
+      "accounts": [
+        {
+          "name": "creator",
+          "signer": true,
+          "relations": [
+            "campaign"
+          ]
+        },
+        {
+          "name": "campaign",
+          "writable": true
+        },
+        {
+          "name": "treasury",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "campaign"
+              }
+            ]
+          }
+        },
+        {
+          "name": "paymentMint"
+        },
+        {
+          "name": "treasuryToken",
+          "writable": true
+        },
+        {
+          "name": "tokenProgram"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "claimAccessReceipt",
       "discriminator": [
         244,
@@ -176,8 +243,18 @@ export type CompartidoMarket = {
           }
         },
         {
-          "name": "systemProgram",
-          "address": "11111111111111111111111111111111"
+          "name": "paymentMint"
+        },
+        {
+          "name": "treasuryToken",
+          "writable": true
+        },
+        {
+          "name": "buyerToken",
+          "writable": true
+        },
+        {
+          "name": "tokenProgram"
         }
       ],
       "args": []
@@ -438,6 +515,20 @@ export type CompartidoMarket = {
               }
             ]
           }
+        },
+        {
+          "name": "paymentMint"
+        },
+        {
+          "name": "buyerToken",
+          "writable": true
+        },
+        {
+          "name": "treasuryToken",
+          "writable": true
+        },
+        {
+          "name": "tokenProgram"
         },
         {
           "name": "systemProgram",
@@ -1371,6 +1462,106 @@ export type CompartidoMarket = {
           }
         },
         {
+          "name": "paymentMint"
+        },
+        {
+          "name": "treasuryToken",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "treasury"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "paymentMint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "tokenProgram"
+        },
+        {
+          "name": "associatedTokenProgram",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
           "name": "systemProgram",
           "address": "11111111111111111111111111111111"
         }
@@ -1408,6 +1599,10 @@ export type CompartidoMarket = {
         {
           "name": "deadline",
           "type": "i64"
+        },
+        {
+          "name": "paymentMint",
+          "type": "pubkey"
         }
       ]
     },
@@ -1603,6 +1798,64 @@ export type CompartidoMarket = {
           "type": "u64"
         }
       ]
+    },
+    {
+      "name": "prepareCancellation",
+      "docs": [
+        "Marks every delegated commitment for a full refund without reading any",
+        "private budget. The accounts can then be returned to Solana, where the",
+        "token transfers are executed by `cancel_campaign`."
+      ],
+      "discriminator": [
+        71,
+        173,
+        73,
+        33,
+        231,
+        154,
+        33,
+        145
+      ],
+      "accounts": [
+        {
+          "name": "creator",
+          "signer": true,
+          "relations": [
+            "campaign"
+          ]
+        },
+        {
+          "name": "campaign",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  97,
+                  109,
+                  112,
+                  97,
+                  105,
+                  103,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "creator"
+              },
+              {
+                "kind": "account",
+                "path": "campaign.campaign_id",
+                "account": "campaign"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
     },
     {
       "name": "processUndelegation",
@@ -1910,7 +2163,7 @@ export type CompartidoMarket = {
     {
       "name": "settleCampaign",
       "docs": [
-        "Pays the selected supplier from public, committed allocation outcomes."
+        "Pays the room organizer from public, committed allocation outcomes."
       ],
       "discriminator": [
         118,
@@ -1961,8 +2214,18 @@ export type CompartidoMarket = {
           }
         },
         {
-          "name": "systemProgram",
-          "address": "11111111111111111111111111111111"
+          "name": "paymentMint"
+        },
+        {
+          "name": "treasuryToken",
+          "writable": true
+        },
+        {
+          "name": "supplierToken",
+          "writable": true
+        },
+        {
+          "name": "tokenProgram"
         }
       ],
       "args": []
@@ -2842,6 +3105,14 @@ export type CompartidoMarket = {
           },
           {
             "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "paymentMint",
+            "type": "pubkey"
+          },
+          {
+            "name": "paymentDecimals",
             "type": "u8"
           }
         ]

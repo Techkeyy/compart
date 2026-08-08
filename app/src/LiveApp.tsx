@@ -10,7 +10,6 @@ import {
   type OrganizerProgress,
   type ParticipantPosition,
   type ReceiptSnapshot,
-  type SupplierOfferSnapshot,
   claimPrototypeReceipt,
   claimRefund,
   cancelStalledCampaign,
@@ -23,7 +22,6 @@ import {
   inspectProgram,
   hasParticipantAccess,
   normalizeCampaignAddress,
-  postSupplierOffer,
   readBuyerRoomAddresses,
   readCampaignRoom,
   readOrganizerRoomAddresses,
@@ -57,7 +55,7 @@ import {
 import "./live-app.css";
 
 type AppView = "lobby" | "create" | "room" | "history";
-type RoomRole = "participant" | "host" | "organizer";
+type RoomRole = "participant" | "organizer";
 type SubmitState = "idle" | "working" | "done" | "error";
 
 type RoomMetadata = {
@@ -85,7 +83,7 @@ const COMMIT_STEPS: Array<{ key: CommitmentProgress | "wallet"; label: string; d
 ];
 
 const ORGANIZER_STEPS: Array<{ key: OrganizerProgress; label: string }> = [
-  { key: "selecting-offer", label: "Lock the final group goal" },
+  { key: "selecting-goal", label: "Lock the final group goal" },
   { key: "delegating-room", label: "Move room outcome state into the TEE" },
   { key: "reading-private-room", label: "Verify the complete private commitment set" },
   { key: "computing-allocations", label: "Compute allocations without exposing limits" },
@@ -96,6 +94,13 @@ const ORGANIZER_STEPS: Array<{ key: OrganizerProgress; label: string }> = [
 
 function displayAmount(value: bigint): number {
   return Number(value) / USDC_BASE_UNITS;
+}
+
+function firstEvenGoal(minGoal: bigint, maxGoal: bigint, people: number): bigint | null {
+  const divisor = BigInt(people);
+  const remainder = minGoal % divisor;
+  const candidate = remainder === 0n ? minGoal : minGoal + divisor - remainder;
+  return candidate <= maxGoal ? candidate : null;
 }
 
 function shortAddress(value: string): string {
@@ -242,14 +247,13 @@ function DevnetWalletChecklist({ connected, usdcBalance }: { connected: boolean;
 }
 
 function PrivacyProof({ campaignAddress }: { campaignAddress?: string }) {
-  return <aside className="privacy-proof"><div className="proof-heading"><span><ShieldIcon size={19} /></span><div><small>LIVE PRIVACY MODEL</small><strong>Outcome-only by design</strong></div></div><div className="proof-boundary"><div><small>PUBLIC ON SOLANA</small><p>Deposit, quantity, deal options, allocation and refund.</p></div><div><small>PRIVATE IN MAGICBLOCK TEE</small><p>Your maximum and the values used during matching.</p></div></div><ul><li><CheckIcon size={14} /> Eligibility: commitment accounts delegate to MagicBlock ER</li><li><CheckIcon size={14} /> Theme: one private room lets a group coordinate together</li><li><CheckIcon size={14} /> Creativity: private group checkout, not another expense tracker</li><li><CheckIcon size={14} /> Technical depth: authenticated Private ER budgets and outcome-only matching</li><li><CheckIcon size={14} /> Solana showcase: deposits, results, refunds and receipts settle onchain</li></ul><div className="proof-actions"><a href={explorerPath("address", PROGRAM_ID.toBase58())} target="_blank" rel="noreferrer">Program proof ↗</a>{campaignAddress && <a href={explorerPath("address", campaignAddress)} target="_blank" rel="noreferrer">Room account ↗</a>}<a href="https://github.com/Techkeyy/compart/blob/main/HOSTED_DEVNET_PROOF.md" target="_blank" rel="noreferrer">Two-wallet denial proof ↗</a></div></aside>;
+  return <aside className="privacy-proof"><div className="proof-heading"><span><ShieldIcon size={19} /></span><div><small>LIVE PRIVACY MODEL</small><strong>Outcome-only by design</strong></div></div><div className="proof-boundary"><div><small>PUBLIC ON SOLANA</small><p>Deposit, quantity, goal, allocation and refund.</p></div><div><small>PRIVATE IN MAGICBLOCK TEE</small><p>Your maximum and the values used during matching.</p></div></div><ul><li><CheckIcon size={14} /> Eligibility: commitment accounts delegate to MagicBlock ER</li><li><CheckIcon size={14} /> Theme: one private room lets a group coordinate together</li><li><CheckIcon size={14} /> Creativity: private group checkout, not another expense tracker</li><li><CheckIcon size={14} /> Technical depth: authenticated Private ER budgets and outcome-only matching</li><li><CheckIcon size={14} /> Solana showcase: deposits, results, refunds and receipts settle onchain</li></ul><div className="proof-actions"><a href={explorerPath("address", PROGRAM_ID.toBase58())} target="_blank" rel="noreferrer">Program proof ↗</a>{campaignAddress && <a href={explorerPath("address", campaignAddress)} target="_blank" rel="noreferrer">Room account ↗</a>}<a href="https://docs.magicblock.gg/pages/private-ephemeral-rollups-pers/how-to-guide/quickstart" target="_blank" rel="noreferrer">Private ER docs ↗</a></div></aside>;
 }
 
 export default function LiveApp() {
   const initialParams = new URLSearchParams(window.location.search);
   const roomFromUrl = initialParams.get("room");
   const detailsFromUrl = initialParams.get("details");
-  const inviteRole = initialParams.get("role") === "host" ? "host" : "participant";
   const [view, setView] = useState<AppView>(roomFromUrl ? "room" : "lobby");
   const [selectedAddress, setSelectedAddress] = useState(roomFromUrl || "");
   const [wallet, setWallet] = useState<BrowserWallet | null>(null);
@@ -257,17 +261,15 @@ export default function LiveApp() {
   const [devnetUsdcBalance, setDevnetUsdcBalance] = useState<number | null>(null);
   const [programState, setProgramState] = useState<"checking" | "ready" | "unreachable">("checking");
   const [campaign, setCampaign] = useState<CampaignSnapshot | null>(null);
-  const [offers, setOffers] = useState<SupplierOfferSnapshot[]>([]);
   const [position, setPosition] = useState<ParticipantPosition | null>(null);
   const [roomState, setRoomState] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [roomError, setRoomError] = useState("");
-  const [role, setRole] = useState<RoomRole>(inviteRole);
+  const [role, setRole] = useState<RoomRole>("participant");
   const [joinCode, setJoinCode] = useState("");
   const [joinState, setJoinState] = useState<SubmitState>("idle");
   const [joinNotice, setJoinNotice] = useState("");
   const [now, setNow] = useState(() => Math.floor(Date.now() / 1000));
   const [inviteState, setInviteState] = useState<"idle" | "copied" | "error">("idle");
-  const [accessRole, setAccessRole] = useState<"participant" | "host">("participant");
   const [accessState, setAccessState] = useState<SubmitState>("idle");
   const [accessNotice, setAccessNotice] = useState("");
   const [maxBudget, setMaxBudget] = useState(0);
@@ -275,15 +277,8 @@ export default function LiveApp() {
   const [commitProgress, setCommitProgress] = useState<CommitmentProgress | "wallet">("wallet");
   const [commitNotice, setCommitNotice] = useState("");
   const [commitSignature, setCommitSignature] = useState("");
-  const [hostPrice, setHostPrice] = useState(0);
-  const [hostQuantity, setHostQuantity] = useState(0);
-  const [hostName, setHostName] = useState("");
-  const [hostTerms, setHostTerms] = useState("");
-  const [hostState, setHostState] = useState<SubmitState>("idle");
-  const [hostNotice, setHostNotice] = useState("");
-  const [hostSignature, setHostSignature] = useState("");
   const [organizerState, setOrganizerState] = useState<SubmitState>("idle");
-  const [organizerProgress, setOrganizerProgress] = useState<OrganizerProgress>("selecting-offer");
+  const [organizerProgress, setOrganizerProgress] = useState<OrganizerProgress>("selecting-goal");
   const [organizerNotice, setOrganizerNotice] = useState("");
   const [organizerSignatures, setOrganizerSignatures] = useState<string[]>([]);
   const [finalGoal, setFinalGoal] = useState(0);
@@ -298,7 +293,7 @@ export default function LiveApp() {
   const [createForm, setCreateForm] = useState({
     title: "",
     location: "",
-    propertyType: "Entire house",
+    propertyType: "Group stay",
     startDate: defaultDate(30),
     endDate: defaultDate(33),
     targetQuantity: 2,
@@ -343,7 +338,6 @@ export default function LiveApp() {
       const room = await readCampaignRoom(selectedAddress);
       if (!room) throw new Error("No Compart room exists at this address.");
       setCampaign(room.campaign);
-      setOffers(room.offers);
       setRoomState("ready");
       setRoomError("");
       if (wallet?.publicKey) setPosition(await readParticipantPosition(wallet.publicKey, selectedAddress));
@@ -401,10 +395,8 @@ export default function LiveApp() {
   useEffect(() => {
     if (!campaign) return;
     setMaxBudget(displayAmount(campaign.depositCap));
-    setHostQuantity(campaign.targetQuantity);
-    setHostPrice(0);
-    setHostTerms("");
-    setFinalGoal(displayAmount(campaign.minGoal));
+    const suggestedGoal = firstEvenGoal(campaign.minGoal, campaign.maxGoal, campaign.targetQuantity);
+    setFinalGoal(displayAmount(suggestedGoal ?? campaign.minGoal));
   }, [campaign?.address]);
 
   useEffect(() => {
@@ -473,7 +465,7 @@ export default function LiveApp() {
         const invite = new URL(joinCode.trim());
         const details = invite.searchParams.get("details");
         if (details) safeWrite(`compart:room:${normalized}`, decodeMetadata(details));
-        setRole(invite.searchParams.get("role") === "host" ? "host" : "participant");
+        setRole("participant");
       }
       const room = await readCampaignRoom(normalized);
       if (!room) throw new Error("No Compart room was found for that invite code.");
@@ -485,7 +477,7 @@ export default function LiveApp() {
     }
   }
 
-  async function copyInvite(target: "participant" | "host" = "participant") {
+  async function copyInvite() {
     if (!selectedAddress || !wallet?.publicKey || !isOrganizer) {
       setInviteState("error");
       setAccessNotice("Connect the organizer wallet to create a claim link.");
@@ -495,10 +487,10 @@ export default function LiveApp() {
     setAccessState("working");
     setAccessNotice("");
     try {
-      const created = await createClaimableInvite(wallet, target, selectedAddress);
+      const created = await createClaimableInvite(wallet, selectedAddress);
       const url = new URL(window.location.href);
       url.searchParams.set("room", selectedAddress);
-      url.searchParams.set("role", target);
+      url.searchParams.set("role", "participant");
       url.searchParams.set("invite", created.invite);
       url.searchParams.set("claim", created.secret);
       if (selectedMeta) url.searchParams.set("details", encodeMetadata(selectedMeta));
@@ -506,7 +498,7 @@ export default function LiveApp() {
       await navigator.clipboard.writeText(url.toString());
       setInviteState("copied");
       setAccessState("done");
-      setAccessNotice(`One-time ${target === "participant" ? "participant" : "supplier"} link created and copied.`);
+      setAccessNotice("One-time participant link created and copied.");
     } catch (error) {
       setInviteState("error");
       setAccessState("error");
@@ -548,7 +540,13 @@ export default function LiveApp() {
     setCreateProgress(0);
     try {
       if (!createForm.description.trim()) throw new Error("Describe what the group is trying to secure.");
-      if (!createForm.terms.trim()) throw new Error("Add the public refund and inventory terms.");
+      if (!createForm.terms.trim()) throw new Error("Add the public refund and delivery terms.");
+      if (createForm.endDate < createForm.startDate) throw new Error("The end date cannot be before the start date.");
+      const minGoalUnits = BigInt(Math.round(createForm.minGoal * USDC_BASE_UNITS));
+      const maxGoalUnits = BigInt(Math.round(createForm.maxGoal * USDC_BASE_UNITS));
+      if (!firstEvenGoal(minGoalUnits, maxGoalUnits, createForm.targetQuantity)) {
+        throw new Error("Choose a goal range containing at least one total that splits evenly across the group.");
+      }
       if (createForm.endDate <= createForm.startDate) throw new Error("Check-out must be after check-in.");
       let activeWallet = wallet;
       if (!activeWallet?.publicKey) activeWallet = await connectWallet();
@@ -572,7 +570,7 @@ export default function LiveApp() {
         propertyType: createForm.propertyType,
         description: createForm.description,
         terms: createForm.terms,
-        amenities: [`${createForm.targetQuantity} guests`, `${createForm.propertyType}`, "Private limits", "Goal range"],
+        amenities: [`${createForm.targetQuantity} people needed`, `${createForm.propertyType}`, "Private limits", "Goal range"],
       });
       safeWrite(`compart:room:${result.campaign}`, metadata);
       setCreateProgress(3);
@@ -600,7 +598,7 @@ export default function LiveApp() {
         throw new Error(`You need at least ${displayAmount(campaign.depositCap)} devnet USDC for this room's public escrow cap. Use the Circle faucet, then try again.`);
       }
       if (isOrganizer) {
-        const selfInvite = await createClaimableInvite(activeWallet, "participant", selectedAddress);
+        const selfInvite = await createClaimableInvite(activeWallet, selectedAddress);
         await claimRoomAccess(activeWallet, selfInvite.invite, selfInvite.secret, selectedAddress);
       } else {
         const url = new URL(window.location.href);
@@ -628,33 +626,19 @@ export default function LiveApp() {
     }
   }
 
-  async function submitHostQuote() {
-    if (!selectedAddress || !campaign || hostPrice <= 0 || !Number.isFinite(hostPrice)) return;
-    setHostState("working");
-    setHostNotice("");
-    try {
-      let activeWallet = wallet;
-      if (!activeWallet?.publicKey) activeWallet = await connectWallet();
-      if (!activeWallet?.publicKey) throw new Error("Connect a deal-publisher wallet to continue.");
-      await claimInviteIfPresent(activeWallet);
-      const signature = await postSupplierOffer(activeWallet, hostQuantity, BigInt(Math.round(hostPrice * USDC_BASE_UNITS)), selectedAddress);
-      setHostSignature(signature);
-      setHostState("done");
-      setHostNotice("Your complete-group quote is now public on Solana.");
-      safeWrite(`compart:offer:${selectedAddress}:${activeWallet.publicKey.toBase58()}`, { hostName, hostTerms });
-      await refreshRoom();
-    } catch (error) {
-      setHostState("error");
-      setHostNotice(error instanceof Error ? error.message : "The quote did not complete.");
-    }
-  }
-
   async function settleRoom() {
     if (!selectedAddress || !campaign || !wallet?.publicKey) return;
     setOrganizerState("working");
     setOrganizerNotice("");
     try {
-      const result = await runOrganizerSettlement(wallet, selectedAddress, BigInt(Math.round(finalGoal * USDC_BASE_UNITS)), setOrganizerProgress);
+      const finalGoalUnits = BigInt(Math.round(finalGoal * USDC_BASE_UNITS));
+      if (finalGoalUnits % BigInt(campaign.targetQuantity) !== 0n) {
+        const suggested = firstEvenGoal(finalGoalUnits, campaign.maxGoal, campaign.targetQuantity);
+        throw new Error(suggested
+          ? `Choose a total that splits evenly across ${campaign.targetQuantity} people, such as USDC ${displayAmount(suggested)}.`
+          : `Choose a lower total that splits evenly across ${campaign.targetQuantity} people.`);
+      }
+      const result = await runOrganizerSettlement(wallet, selectedAddress, finalGoalUnits, setOrganizerProgress);
       setOrganizerSignatures(result.signatures);
       setOrganizerState("done");
       setOrganizerNotice(result.finalStatus === "settled" ? "The group cleared. Organizer payout and participant refunds are ready." : "The group did not clear. Every participant can reclaim the full deposit.");
@@ -712,8 +696,6 @@ export default function LiveApp() {
   const organizerStepIndex = Math.max(0, ORGANIZER_STEPS.findIndex((step) => step.key === organizerProgress));
   const commitStepIndex = Math.max(0, COMMIT_STEPS.findIndex((step) => step.key === commitProgress));
   const winningPrice = campaign ? displayAmount(campaign.clearingPrice) : 0;
-  const winningOffer = campaign && campaign.winningSupplier !== "11111111111111111111111111111111" ? shortAddress(campaign.winningSupplier) : "Pending private match";
-  const activeQuoteByWallet = offers.some((offer) => offer.supplier === walletAddress);
   const personalRoomByAddress = new Map(personalRooms.map((room) => [room.address, room]));
   const activePersonalRooms = personalRooms.filter((room) => room.status === "open" || room.status === "offer-selected" || room.status === "allocations-computed");
 
@@ -730,17 +712,17 @@ export default function LiveApp() {
       <PrivacyProof />
     </div>}
 
-    {view === "create" && <div className="app-shell app-page create-page"><button className="back-button" onClick={() => navigate("lobby")}>← Back to rooms</button><div className="create-layout"><section><span className="app-kicker">ORGANIZER WORKFLOW</span><h1>Create a room that can actually clear.</h1><p className="page-lead">The room rules are public. Personal maximums are not. Creating the room requires one small devnet transaction. Amounts are shown in devnet USDC. SOL only pays the network fee.</p><form className="create-form" onSubmit={submitCreateRoom}><div className="form-section"><div className="form-section-title"><span>01</span><div><strong>Purchase brief</strong><small>What is the group trying to secure?</small></div></div><div className="field-grid"><label className="wide"><span>Room title</span><input maxLength={32} required value={createForm.title} onChange={(event) => setCreateForm({ ...createForm, title: event.target.value })} /></label><label><span>Location</span><input required value={createForm.location} onChange={(event) => setCreateForm({ ...createForm, location: event.target.value })} /></label><label><span>Property type</span><select value={createForm.propertyType} onChange={(event) => setCreateForm({ ...createForm, propertyType: event.target.value })}><option>Entire house</option><option>Apartment</option><option>Hostel rooms</option><option>Retreat venue</option><option>Group purchase</option></select></label><label><span>Check-in</span><input type="date" required value={createForm.startDate} onChange={(event) => setCreateForm({ ...createForm, startDate: event.target.value })} /></label><label><span>Check-out</span><input type="date" required value={createForm.endDate} onChange={(event) => setCreateForm({ ...createForm, endDate: event.target.value })} /></label><label className="wide"><span>Public description</span><textarea rows={3} value={createForm.description} onChange={(event) => setCreateForm({ ...createForm, description: event.target.value })} /></label></div></div><div className="form-section"><div className="form-section-title"><span>02</span><div><strong>Clearing rules</strong><small>Rules everyone agrees to before committing.</small></div></div><div className="field-grid three"><label><span>People needed</span><input type="number" min="2" max="25" value={createForm.targetQuantity} onChange={(event) => setCreateForm({ ...createForm, targetQuantity: Number(event.target.value) })} /></label><label><span>Equal deposit (USDC)</span><input type="number" min="0.001" step="0.001" value={createForm.deposit} onChange={(event) => setCreateForm({ ...createForm, deposit: Number(event.target.value) })} /></label><label><span>Minimum goal (USDC)</span><input type="number" min="0.001" step="0.001" value={createForm.minGoal || ""} onChange={(event) => setCreateForm({ ...createForm, minGoal: Number(event.target.value) })} /></label><label><span>Maximum approved goal (USDC)</span><input type="number" min="0.001" step="0.001" value={createForm.maxGoal || ""} onChange={(event) => setCreateForm({ ...createForm, maxGoal: Number(event.target.value) })} /></label><label><span>Commitment window</span><select value={createForm.deadlineHours} onChange={(event) => setCreateForm({ ...createForm, deadlineHours: Number(event.target.value) })}><option value={5 / 60}>5 minutes (demo)</option><option value={10 / 60}>10 minutes (demo)</option><option value={15 / 60}>15 minutes</option><option value={30 / 60}>30 minutes</option><option value={1}>1 hour</option><option value={6}>6 hours</option><option value={12}>12 hours</option><option value={24}>24 hours</option><option value={72}>3 days</option><option value={168}>7 days</option></select></label><label className="wide"><span>Refund and inventory terms</span><textarea rows={3} value={createForm.terms} onChange={(event) => setCreateForm({ ...createForm, terms: event.target.value })} /></label></div></div><div className="create-submit"><button className="app-primary" disabled={createState === "working"} type="submit">{createState === "working" ? "Creating room…" : connected ? "Create room on devnet" : "Connect and create room"} <ArrowIcon /></button><p>This creates prototype room state only. It does not reserve real accommodation inventory.</p></div>{createNotice && <p className={`submit-notice ${createState}`}>{createNotice}</p>}</form></section><aside className="create-preview"><small>LIVE PREVIEW</small><div className="preview-art"><BuildingIcon size={58} /><span>{createForm.location}</span></div><div className="preview-body"><span className="status-chip">Collecting commitments</span><h3>{createForm.title || "Untitled room"}</h3><p>{createForm.propertyType} · {formatDate(createForm.startDate)} – {formatDate(createForm.endDate)}</p><div><span><small>GROUP NEEDED</small><strong>{createForm.targetQuantity} people</strong></span><span><small>PUBLIC DEPOSIT</small><strong>USDC {createForm.deposit}</strong></span></div></div>{createState === "working" && <FlowSteps activeIndex={createProgress} steps={[{ label: "Wallet connected" }, { label: "Room account created" }, { label: "Details saved" }, { label: "Invite ready" }]} />}</aside></div></div>}
+    {view === "create" && <div className="app-shell app-page create-page"><button className="back-button" onClick={() => navigate("lobby")}>← Back to rooms</button><div className="create-layout"><section><span className="app-kicker">ORGANIZER WORKFLOW</span><h1>Create a room that can actually clear.</h1><p className="page-lead">The room rules are public. Personal maximums are not. Creating the room requires one small devnet transaction. Amounts are shown in devnet USDC. SOL only pays the network fee.</p><form className="create-form" onSubmit={submitCreateRoom}><div className="form-section"><div className="form-section-title"><span>01</span><div><strong>Purchase brief</strong><small>What is the group trying to secure?</small></div></div><div className="field-grid"><label className="wide"><span>Room title</span><input maxLength={32} required value={createForm.title} onChange={(event) => setCreateForm({ ...createForm, title: event.target.value })} /></label><label><span>Location</span><input required value={createForm.location} onChange={(event) => setCreateForm({ ...createForm, location: event.target.value })} /></label><label><span>Plan type</span><select value={createForm.propertyType} onChange={(event) => setCreateForm({ ...createForm, propertyType: event.target.value })}><option>Group stay</option><option>Trip</option><option>Event</option><option>Shared subscription</option><option>Group purchase</option></select></label><label><span>Starts</span><input type="date" required value={createForm.startDate} onChange={(event) => setCreateForm({ ...createForm, startDate: event.target.value })} /></label><label><span>Ends</span><input type="date" required value={createForm.endDate} onChange={(event) => setCreateForm({ ...createForm, endDate: event.target.value })} /></label><label className="wide"><span>Public description</span><textarea rows={3} value={createForm.description} onChange={(event) => setCreateForm({ ...createForm, description: event.target.value })} /></label></div></div><div className="form-section"><div className="form-section-title"><span>02</span><div><strong>Clearing rules</strong><small>Rules everyone agrees to before committing.</small></div></div><div className="field-grid three"><label><span>People needed</span><input type="number" min="2" max="25" value={createForm.targetQuantity} onChange={(event) => setCreateForm({ ...createForm, targetQuantity: Number(event.target.value) })} /></label><label><span>Equal deposit (USDC)</span><input type="number" min="0.001" step="0.001" value={createForm.deposit} onChange={(event) => setCreateForm({ ...createForm, deposit: Number(event.target.value) })} /></label><label><span>Minimum goal (USDC)</span><input type="number" min="0.001" step="0.001" value={createForm.minGoal || ""} onChange={(event) => setCreateForm({ ...createForm, minGoal: Number(event.target.value) })} /></label><label><span>Maximum approved goal (USDC)</span><input type="number" min="0.001" step="0.001" value={createForm.maxGoal || ""} onChange={(event) => setCreateForm({ ...createForm, maxGoal: Number(event.target.value) })} /></label><label><span>Commitment window</span><select value={createForm.deadlineHours} onChange={(event) => setCreateForm({ ...createForm, deadlineHours: Number(event.target.value) })}><option value={5 / 60}>5 minutes (demo)</option><option value={10 / 60}>10 minutes (demo)</option><option value={15 / 60}>15 minutes</option><option value={30 / 60}>30 minutes</option><option value={1}>1 hour</option><option value={6}>6 hours</option><option value={12}>12 hours</option><option value={24}>24 hours</option><option value={72}>3 days</option><option value={168}>7 days</option></select></label><label className="wide"><span>Refund and delivery terms</span><textarea rows={3} value={createForm.terms} onChange={(event) => setCreateForm({ ...createForm, terms: event.target.value })} /></label></div></div><div className="create-submit"><button className="app-primary" disabled={createState === "working"} type="submit">{createState === "working" ? "Creating room…" : connected ? "Create room on devnet" : "Connect and create room"} <ArrowIcon /></button><p>This creates prototype room state only. It does not complete a real purchase or reservation.</p></div>{createNotice && <p className={`submit-notice ${createState}`}>{createNotice}</p>}</form></section><aside className="create-preview"><small>LIVE PREVIEW</small><div className="preview-art"><BuildingIcon size={58} /><span>{createForm.location}</span></div><div className="preview-body"><span className="status-chip">Collecting commitments</span><h3>{createForm.title || "Untitled room"}</h3><p>{createForm.propertyType} · {formatDate(createForm.startDate)} – {formatDate(createForm.endDate)}</p><div><span><small>GROUP NEEDED</small><strong>{createForm.targetQuantity} people</strong></span><span><small>PUBLIC DEPOSIT</small><strong>USDC {createForm.deposit}</strong></span></div></div>{createState === "working" && <FlowSteps activeIndex={createProgress} steps={[{ label: "Wallet connected" }, { label: "Room account created" }, { label: "Details saved" }, { label: "Invite ready" }]} />}</aside></div></div>}
 
     {view === "history" && <div className="app-shell app-page history-page"><div className="history-heading"><div><span className="app-kicker">YOUR ACTIVITY</span><h1>Your rooms, refunds and receipts.</h1><p>Connect the wallet you used in Compart. We show only rooms this wallet created, joined, or received a receipt from.</p></div>{!connected && <button className="app-primary" onClick={toggleWallet}><WalletIcon /> Connect your wallet</button>}</div>{!connected && <div className="empty-panel"><WalletIcon size={24} /><h3>Connect to view your activity</h3><p>Compart does not show a public history of other people’s rooms.</p></div>}{connected && <><section className="history-section"><div className="app-section-heading"><div><span className="app-kicker">YOUR ROOMS</span><h2>Created or joined by this wallet</h2></div></div>{historyState === "loading" && <div className="directory-loading">Looking up your commitments and rooms…</div>}<div className="history-list">{historyRooms.map((address) => { const room = personalRoomByAddress.get(address); return <button key={address} onClick={() => openRoom(address)}><span className="history-icon"><HomeIcon /></span><div><strong>{room?.title || "Compart room"}</strong><small>{room ? statusLabel(room.status) : shortAddress(address)}</small></div><span>{room ? `${room.totalRequested}/${room.targetQuantity}` : "Open"} →</span></button>; })}</div>{historyRooms.length === 0 && historyState !== "loading" && <div className="empty-panel"><HomeIcon size={24} /><h3>No room history yet</h3><p>Create a room or open an invitation to begin.</p></div>}</section><section className="history-section"><div className="app-section-heading"><div><span className="app-kicker">ONCHAIN RECEIPTS</span><h2>Completed allocations</h2></div></div><div className="receipt-grid">{receipts.map((receipt) => <article key={receipt.address}><span><ReceiptIcon /></span><small>PROTOTYPE PURCHASE RECEIPT</small><h3>{personalRoomByAddress.get(receipt.campaign)?.title || "Compart allocation"}</h3><dl><div><dt>Quantity</dt><dd>{receipt.quantity}</dd></div><div><dt>Uniform price</dt><dd>USDC {displayAmount(receipt.unitPrice)}</dd></div><div><dt>Organizer</dt><dd>{shortAddress(receipt.supplier)}</dd></div></dl><a href={explorerPath("address", receipt.address)} target="_blank" rel="noreferrer">View receipt account ↗</a></article>)}</div>{receipts.length === 0 && <div className="empty-panel compact"><ReceiptIcon size={24} /><h3>No receipts found</h3><p>Receipts become available after a successful room settles.</p></div>}</section></>}</div>}
 
     {view === "room" && <div className="app-shell app-page room-page">{roomState === "loading" && <div className="room-loading"><span /><p>Reading room state and your position from Solana…</p></div>}{roomState === "error" && <div className="room-error"><HomeIcon size={28} /><h2>We couldn’t open this room</h2><p>{roomError}</p><button className="app-secondary" onClick={() => navigate("lobby")}>Return to your rooms</button></div>}{campaign && selectedMeta && roomState === "ready" && <>
       <button className="back-button" onClick={() => navigate("lobby")}>← Your rooms</button>
-      <section className="room-hero"><div className={`room-hero-art tone-${campaign.address.charCodeAt(0) % 3}`}><div className="room-hero-overlay"><span>{selectedMeta.propertyType}</span><strong>{selectedMeta.location}</strong></div><BuildingIcon size={105} /></div><div className="room-hero-copy"><div className="room-title-line"><div><span className={`room-status ${campaign.status}`}><i />{statusLabel(campaign.status)}</span><h1>{campaign.title}</h1><p>{selectedMeta.description}</p></div><button className="invite-button" onClick={() => void copyInvite("participant")}><CopyIcon size={15} />{inviteState === "copied" ? "Invite copied" : inviteState === "error" ? "Copy failed" : "Copy participant invite"}</button></div><div className="room-detail-row"><span><CalendarIcon /><small>DATES</small><strong>{selectedDates}</strong></span><span><UsersIcon /><small>GROUP</small><strong>{campaign.totalRequested} of {campaign.targetQuantity} committed</strong></span><span><WalletIcon /><small>EQUAL DEPOSIT</small><strong>USDC {displayAmount(campaign.depositCap)} per person</strong></span><span><KeyIcon /><small>DEADLINE</small><strong>{formatCountdown(campaign.deadline - now)}</strong></span></div></div></section>
+      <section className="room-hero"><div className={`room-hero-art tone-${campaign.address.charCodeAt(0) % 3}`}><div className="room-hero-overlay"><span>{selectedMeta.propertyType}</span><strong>{selectedMeta.location}</strong></div><BuildingIcon size={105} /></div><div className="room-hero-copy"><div className="room-title-line"><div><span className={`room-status ${campaign.status}`}><i />{statusLabel(campaign.status)}</span><h1>{campaign.title}</h1><p>{selectedMeta.description}</p></div><button className="invite-button" onClick={() => void copyInvite()}><CopyIcon size={15} />{inviteState === "copied" ? "Invite copied" : inviteState === "error" ? "Copy failed" : "Copy participant invite"}</button></div><div className="room-detail-row"><span><CalendarIcon /><small>DATES</small><strong>{selectedDates}</strong></span><span><UsersIcon /><small>GROUP</small><strong>{campaign.totalRequested} of {campaign.targetQuantity} committed</strong></span><span><WalletIcon /><small>EQUAL DEPOSIT</small><strong>USDC {displayAmount(campaign.depositCap)} per person</strong></span><span><KeyIcon /><small>DEADLINE</small><strong>{formatCountdown(campaign.deadline - now)}</strong></span></div></div></section>
 
       <section className="lifecycle-panel"><div><span className="app-kicker">ROOM LIFECYCLE</span><strong>Every state has one clear next action.</strong></div><ol>{["Room open", "Commitments", "Private matching", "Solana settlement", campaign.status === "cancelled" ? "Full refunds" : "Complete"].map((label, index) => { const current = campaign.status === "open" ? 1 : campaign.status === "offer-selected" ? 2 : campaign.status === "allocations-computed" ? 3 : 4; return <li className={index < current ? "complete" : index === current ? "active" : ""} key={label}><span>{index < current ? <CheckIcon size={13} /> : index + 1}</span><small>{label}</small></li>; })}</ol></section>
 
-      {(campaign.status === "settled" || campaign.status === "cancelled") && <section className={`outcome-banner ${campaign.status}`}><span>{campaign.status === "settled" ? <CheckIcon size={28} /> : <ArrowIcon size={28} />}</span><div><small>FINAL ROOM OUTCOME</small><h2>{campaign.status === "settled" ? "The group reached its approved goal." : "The room did not clear. Nobody is stuck with the bill."}</h2><p>{campaign.status === "settled" ? `${campaign.allocatedQuantity} participants were allocated at USDC ${winningPrice} each.` : "All participant allocations are zero and the complete public deposits are refundable."}</p></div>{position && <div className="personal-outcome"><small>YOUR OUTCOME</small><strong>{position.allocation > 0 ? `${position.allocation} allocation` : "Not allocated"}</strong><span>Refund: USDC {displayAmount(position.refundOwed)}</span></div>}</section>}
+      {(campaign.status === "settled" || campaign.status === "cancelled") && <section className={`outcome-banner ${campaign.status}`}><span>{campaign.status === "settled" ? <CheckIcon size={28} /> : <ArrowIcon size={28} />}</span><div><small>FINAL ROOM OUTCOME</small><h2>{campaign.status === "settled" ? "The group reached its approved goal." : "The room did not clear. Nobody is stuck with the bill."}</h2><p>{campaign.status === "settled" ? `${campaign.allocatedQuantity} participants were allocated at USDC ${winningPrice} each.` : "All allocations are zero and every complete public deposit was returned automatically."}</p></div>{position && <div className="personal-outcome"><small>YOUR OUTCOME</small><strong>{position.allocation > 0 ? `${position.allocation} allocation` : "Not allocated"}</strong><span>{campaign.status === "cancelled" ? "Full deposit returned" : `Refund: USDC ${displayAmount(position.refundOwed)}`}</span></div>}</section>}
 
       <section className="role-switcher"><div><span className="app-kicker">CHOOSE YOUR VIEW</span><h2>One room. Two clear roles.</h2></div><div role="tablist" aria-label="Room role"><button className={role === "participant" ? "active" : ""} disabled={role !== "participant"} onClick={() => setRole("participant")} role="tab" aria-selected={role === "participant"}><UsersIcon /><span><strong>Participant</strong><small>Set a private limit</small></span></button><button className={role === "organizer" ? "active" : ""} disabled={role !== "organizer"} onClick={() => setRole("organizer")} role="tab" aria-selected={role === "organizer"}><ShieldIcon /><span><strong>Organizer</strong><small>Close, match and settle</small></span></button></div></section>
 
@@ -753,12 +735,7 @@ export default function LiveApp() {
           {commitNotice && <p className={`submit-notice ${commitState === "error" || settlementState === "error" ? "error" : "done"}`}>{commitNotice}</p>}{commitSignature && <a className="transaction-link" href={explorerPath("tx", commitSignature)} target="_blank" rel="noreferrer">View latest transaction ↗</a>}
         </div>}
 
-        {role === "host" && <div className="host-panel">
-          <div className="role-panel-heading"><div><span className="role-icon host"><BuildingIcon /></span><div><small>DEAL OPTION WORKFLOW</small><h2>Publish a group deal option—not one guest price.</h2></div></div><span className="role-badge">Public, comparable offers</span></div>
-          <div className="host-layout"><form onSubmit={(event) => { event.preventDefault(); void submitHostQuote(); }}><label><span>Host or property name</span><input required value={hostName} onChange={(event) => setHostName(event.target.value)} placeholder="Enter the public supplier name" /></label><div className="field-grid"><label><span>Available places</span><input type="number" min={campaign.targetQuantity} value={hostQuantity} onChange={(event) => setHostQuantity(Number(event.target.value))} /></label><label><span>Price per person (USDC)</span><input type="number" min="0.001" step="0.001" value={hostPrice || ""} placeholder="Enter a price" onChange={(event) => setHostPrice(Number(event.target.value))} /></label></div><label><span>Prototype inventory and cancellation terms</span><textarea required rows={3} value={hostTerms} placeholder="Describe the inventory and cancellation terms" onChange={(event) => setHostTerms(event.target.value)} /></label><div className="quote-summary"><span><small>GROUP VALUE</small><strong>{hostPrice > 0 ? `USDC ${hostPrice * campaign.targetQuantity}` : "—"}</strong></span><span><small>PUBLIC QUOTE</small><strong>{hostPrice > 0 ? `USDC ${hostPrice} × ${campaign.targetQuantity}` : "—"}</strong></span></div><button className="app-primary wide" type="submit" disabled={hostState === "working" || activeQuoteByWallet || campaign.status !== "open"}>{activeQuoteByWallet ? "This wallet already quoted" : hostState === "working" ? "Publishing quote…" : connected ? "Publish group quote" : "Connect and quote"} <ArrowIcon /></button>{hostNotice && <p className={`submit-notice ${hostState}`}>{hostNotice}</p>}{hostSignature && <a className="transaction-link" href={explorerPath("tx", hostSignature)} target="_blank" rel="noreferrer">View quote transaction ↗</a>}</form><div className="quote-board"><div><span className="app-kicker">PUBLIC QUOTE BOARD</span><strong>{offers.length} active {offers.length === 1 ? "offer" : "offers"}</strong></div>{offers.length === 0 && <div className="empty-panel compact"><BuildingIcon size={22} /><h3>No host quote yet</h3><p>The first complete-group deal option will appear here.</p></div>}{offers.map((offer, index) => <article className={index === 0 ? "best" : ""} key={offer.address}><span className="quote-rank">{index + 1}</span><div><strong>{shortAddress(offer.supplier)}</strong><small>{offer.quantity} places · Public Solana offer</small></div>{index === 0 && <span className="best-badge">Best price</span>}<div><strong>USDC {displayAmount(offer.unitPrice)}</strong><small>per person</small></div></article>)}</div></div>
-        </div>}
-
-        {role === "organizer" && <div className="organizer-panel"><div className="role-panel-heading"><div><span className="role-icon organizer"><ShieldIcon /></span><div><small>ORGANIZER CONTROL ROOM</small><h2>Close, match privately and settle publicly.</h2></div></div><span className={`role-badge ${isOrganizer ? "verified" : ""}`}>{isOrganizer ? "Organizer wallet verified" : "Read-only organizer view"}</span></div><div className="organizer-kpis"><article><small>COMMITMENTS</small><strong>{campaign.bidCount}</strong><span>{campaign.totalRequested}/{campaign.targetQuantity} quantity</span></article><article><small>GOAL RANGE</small><strong>USDC {displayAmount(campaign.minGoal)}</strong><span>up to USDC {displayAmount(campaign.maxGoal)}</span></article><article><small>DEADLINE</small><strong>{deadlineReached ? "Reached" : "Open"}</strong><span>{formatDeadline(campaign.deadline)}</span></article><article><small>ROOM STATUS</small><strong>{statusLabel(campaign.status)}</strong><span>{shortAddress(campaign.address)}</span></article></div><div className="organizer-layout"><div className="settlement-console"><span className="app-kicker">YOUR CONTRIBUTION</span>{!position && campaign.status === "open" && <div className="organizer-contribution"><label><span>Private maximum contribution (USDC)</span><input type="number" min={budgetFloor} max={budgetCap} step="0.001" value={maxBudget || ""} onChange={(event) => setMaxBudget(Math.max(budgetFloor, Math.min(budgetCap, Number(event.target.value) || 0)))} /></label><p>Phantom will ask you to escrow <strong>USDC {budgetCap}</strong>. Your private maximum is <strong>USDC {maxBudget || budgetFloor}</strong> and is not shown to other participants.</p><button className="app-secondary wide" onClick={submitCommitment}>Add USDC {maxBudget || budgetFloor} contribution</button></div>}<span className="app-kicker">SETTLEMENT RUN</span><h3>One guided, verifiable sequence</h3><FlowSteps activeIndex={organizerState === "done" ? ORGANIZER_STEPS.length : organizerStepIndex} error={organizerState === "error"} steps={ORGANIZER_STEPS.map((step) => ({ label: step.label }))} />{!isOrganizer && <div className="organizer-warning"><WalletIcon /><p>Connect <strong>{shortAddress(campaign.creator)}</strong>, the wallet that created this room, to enable settlement.</p></div>}{isOrganizer && !deadlineReached && <div className="organizer-warning"><CalendarIcon /><p>Matching unlocks when the commitment deadline is reached. Until then, send participant claim links.</p></div>}<label className="goal-select"><span>Final group goal (USDC)</span><input type="number" min={displayAmount(campaign.minGoal)} max={displayAmount(campaign.maxGoal)} step="0.001" value={finalGoal || ""} onChange={(event) => setFinalGoal(Number(event.target.value))} /><small>Approved range: USDC {displayAmount(campaign.minGoal)} – {displayAmount(campaign.maxGoal)}</small></label><button className="app-primary wide" onClick={settleRoom} disabled={!isOrganizer || !deadlineReached || organizerState === "working" || campaign.status === "settled" || campaign.status === "cancelled"}>{organizerState === "working" ? "Running verified settlement…" : campaign.status === "settled" || campaign.status === "cancelled" ? "Room already complete" : "Close, match and settle"} <ArrowIcon /></button>{isOrganizer && deadlineReached && campaign.status !== "settled" && campaign.status !== "cancelled" && <button className="app-secondary wide" disabled={organizerState === "working"} onClick={cancelRoomForFullRefund}>Cancel room and refund everyone</button>}{organizerNotice && <p className={`submit-notice ${organizerState}`}>{organizerNotice}</p>}{organizerSignatures.length > 0 && <a className="transaction-link" href={explorerPath("tx", organizerSignatures.at(-1)!)} target="_blank" rel="noreferrer">View final settlement transaction ↗</a>}</div><div className="organizer-actions"><span className="app-kicker">PRIVATE PARTICIPANT INVITATIONS</span><div className="access-grant"><span>One-time claim links</span><p>Create one-time participant links. Each person connects their own wallet and claims it once.</p><label><span>Invite role</span><select value={accessRole} onChange={(event) => setAccessRole(event.target.value as "participant" | "host")}><option value="participant">Participant</option></select></label><button type="button" disabled={accessState === "working" || !isOrganizer} onClick={() => void copyInvite(accessRole)}>{accessState === "working" ? "Creating secure link…" : "Create and copy claim link"}</button></div>{accessNotice && <p className={`submit-notice ${accessState}`}>{accessNotice}</p>}<button onClick={() => void copyInvite("participant")}><CopyIcon /><span><strong>{inviteState === "copied" ? "Invite copied" : "Copy participant invite"}</strong><small>Share with the people joining the group</small></span></button><a href={explorerPath("address", campaign.address)} target="_blank" rel="noreferrer"><ShieldIcon /><span><strong>Inspect public settlement state</strong><small>Campaign, progress and final outcome on Explorer</small></span></a><a href="https://github.com/Techkeyy/compart/blob/main/DEMO_SCRIPT.md" target="_blank" rel="noreferrer"><ReceiptIcon /><span><strong>Open organizer runbook</strong><small>Verified demo and recovery sequence</small></span></a></div></div></div>}
+        {role === "organizer" && <div className="organizer-panel"><div className="role-panel-heading"><div><span className="role-icon organizer"><ShieldIcon /></span><div><small>ORGANIZER CONTROL ROOM</small><h2>Close, match privately and settle publicly.</h2></div></div><span className={`role-badge ${isOrganizer ? "verified" : ""}`}>{isOrganizer ? "Organizer wallet verified" : "Read-only organizer view"}</span></div><div className="organizer-kpis"><article><small>COMMITMENTS</small><strong>{campaign.bidCount}</strong><span>{campaign.totalRequested}/{campaign.targetQuantity} quantity</span></article><article><small>GOAL RANGE</small><strong>USDC {displayAmount(campaign.minGoal)}</strong><span>up to USDC {displayAmount(campaign.maxGoal)}</span></article><article><small>DEADLINE</small><strong>{deadlineReached ? "Reached" : "Open"}</strong><span>{formatDeadline(campaign.deadline)}</span></article><article><small>ROOM STATUS</small><strong>{statusLabel(campaign.status)}</strong><span>{shortAddress(campaign.address)}</span></article></div><div className="organizer-layout"><div className="settlement-console"><span className="app-kicker">YOUR CONTRIBUTION</span>{!position && campaign.status === "open" && <div className="organizer-contribution"><label><span>Private maximum contribution (USDC)</span><input type="number" min={budgetFloor} max={budgetCap} step="0.001" value={maxBudget || ""} onChange={(event) => setMaxBudget(Math.max(budgetFloor, Math.min(budgetCap, Number(event.target.value) || 0)))} /></label><p>Phantom will ask you to escrow <strong>USDC {budgetCap}</strong>. Your private maximum is <strong>USDC {maxBudget || budgetFloor}</strong> and is not shown to other participants.</p><button className="app-secondary wide" onClick={submitCommitment}>Add USDC {maxBudget || budgetFloor} contribution</button></div>}<span className="app-kicker">SETTLEMENT RUN</span><h3>One guided, verifiable sequence</h3><FlowSteps activeIndex={organizerState === "done" ? ORGANIZER_STEPS.length : organizerStepIndex} error={organizerState === "error"} steps={ORGANIZER_STEPS.map((step) => ({ label: step.label }))} />{!isOrganizer && <div className="organizer-warning"><WalletIcon /><p>Connect <strong>{shortAddress(campaign.creator)}</strong>, the wallet that created this room, to enable settlement.</p></div>}{isOrganizer && !deadlineReached && <div className="organizer-warning"><CalendarIcon /><p>Matching unlocks when the commitment deadline is reached. Until then, send participant claim links.</p></div>}<label className="goal-select"><span>Final group goal (USDC)</span><input type="number" min={displayAmount(campaign.minGoal)} max={displayAmount(campaign.maxGoal)} step="0.001" value={finalGoal || ""} onChange={(event) => setFinalGoal(Number(event.target.value))} /><small>Approved range: USDC {displayAmount(campaign.minGoal)} – {displayAmount(campaign.maxGoal)}</small></label><button className="app-primary wide" onClick={settleRoom} disabled={!isOrganizer || !deadlineReached || organizerState === "working" || campaign.status === "settled" || campaign.status === "cancelled"}>{organizerState === "working" ? "Running verified settlement…" : campaign.status === "settled" || campaign.status === "cancelled" ? "Room already complete" : "Close, match and settle"} <ArrowIcon /></button>{isOrganizer && deadlineReached && campaign.status !== "settled" && campaign.status !== "cancelled" && <button className="app-secondary wide" disabled={organizerState === "working"} onClick={cancelRoomForFullRefund}>Cancel room and refund everyone</button>}{organizerNotice && <p className={`submit-notice ${organizerState}`}>{organizerNotice}</p>}{organizerSignatures.length > 0 && <a className="transaction-link" href={explorerPath("tx", organizerSignatures.at(-1)!)} target="_blank" rel="noreferrer">View final settlement transaction ↗</a>}</div><div className="organizer-actions"><span className="app-kicker">PRIVATE PARTICIPANT INVITATIONS</span><div className="access-grant"><span>One-time claim links</span><p>Create one-time participant links. Each person connects their own wallet and claims it once.</p><button type="button" disabled={accessState === "working" || !isOrganizer} onClick={() => void copyInvite()}>{accessState === "working" ? "Creating secure link…" : "Create and copy claim link"}</button></div>{accessNotice && <p className={`submit-notice ${accessState}`}>{accessNotice}</p>}<button onClick={() => void copyInvite()}><CopyIcon /><span><strong>{inviteState === "copied" ? "Invite copied" : "Copy participant invite"}</strong><small>Share with the people joining the group</small></span></button><a href={explorerPath("address", campaign.address)} target="_blank" rel="noreferrer"><ShieldIcon /><span><strong>Inspect public settlement state</strong><small>Campaign, progress and final outcome on Explorer</small></span></a><a href="https://github.com/Techkeyy/compart/blob/main/DEMO_SCRIPT.md" target="_blank" rel="noreferrer"><ReceiptIcon /><span><strong>Open organizer runbook</strong><small>Verified demo and recovery sequence</small></span></a></div></div></div>}
       </section><aside className="room-sidebar"><section className="public-progress"><span className="app-kicker">PUBLIC ROOM SIGNAL</span><div><strong>{campaign.totalRequested} of {campaign.targetQuantity}</strong><span>{progressPercent}%</span></div><div className="app-progress"><i style={{ width: `${progressPercent}%` }} /></div><p>Everyone can see whether the group is becoming viable. Nobody can see a participant’s ceiling.</p><ul><li><span><UsersIcon size={14} /> Public commitments</span><strong>{campaign.bidCount}</strong></li><li><span><WalletIcon size={14} /> Approved goal</span><strong>USDC {displayAmount(campaign.minGoal)}–{displayAmount(campaign.maxGoal)}</strong></li><li><span><LockIcon size={14} /> Private values exposed</span><strong>0</strong></li></ul></section><section className="room-terms"><span className="app-kicker">DETAILS & TERMS</span><h3>{selectedMeta.propertyType}</h3><p>{selectedMeta.location}</p><div className="amenity-list">{selectedMeta.amenities.map((amenity) => <span key={amenity}>{amenity}</span>)}</div><dl><div><dt>Commitment deadline</dt><dd>{formatDeadline(campaign.deadline)}</dd></div><div><dt>Equal public deposit</dt><dd>USDC {displayAmount(campaign.depositCap)}</dd></div><div><dt>Clearing rule</dt><dd>Goal must be met inside the approved range</dd></div><div><dt>Refund rule</dt><dd>Full deposit if the group fails; excess after a successful clearing</dd></div></dl><div className="terms-note"><strong>Prototype inventory terms</strong><p>{selectedMeta.terms}</p></div></section><PrivacyProof campaignAddress={campaign.address} /></aside></div>
     </>}</div>}
   </main>;

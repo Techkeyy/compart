@@ -1,5 +1,7 @@
 # Hosted Devnet Proof
 
+> **Historical proof archive.** These transactions belong to the retired supplier prototype and previous program ID. They are preserved for provenance only and must not be presented as current-program proof. Current deployment verification is recorded in `AUDIT_REPORT.md`.
+
 Compart's full privacy and settlement lifecycle passed on Solana devnet and
 MagicBlock's hosted devnet TEE on August 8, 2026.
 

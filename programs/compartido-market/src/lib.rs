@@ -43,6 +43,7 @@ pub const MAX_OFFERS: u8 = 3;
 pub mod compartido_market {
     use super::*;
 
+    #[allow(clippy::too_many_arguments)]
     pub fn initialize_campaign(
         ctx: Context<InitializeCampaign>,
         campaign_id: u64,
@@ -138,7 +139,7 @@ pub mod compartido_market {
             CompartidoError::GoalOutsideRange
         );
         require!(
-            final_goal % u64::from(campaign.target_quantity) == 0,
+            final_goal.is_multiple_of(u64::from(campaign.target_quantity)),
             CompartidoError::GoalMustSplitEvenly
         );
         let per_person = final_goal / u64::from(campaign.target_quantity);
@@ -655,7 +656,7 @@ pub mod compartido_market {
             CompartidoError::DeadlineNotReached
         );
         require!(
-            ctx.remaining_accounts.len() == campaign.bid_count as usize,
+            ctx.remaining_accounts.len() == private_allocation_account_count(campaign.bid_count)?,
             CompartidoError::IncompletePrivateBudgetSet
         );
 
@@ -772,7 +773,7 @@ pub mod compartido_market {
         Ok(())
     }
 
-    /// Pays the selected supplier from public, committed allocation outcomes.
+    /// Pays the room organizer from public, committed allocation outcomes.
     pub fn settle_campaign(ctx: Context<SettleCampaign>) -> Result<()> {
         let campaign = &mut ctx.accounts.campaign;
         require!(
@@ -792,7 +793,7 @@ pub mod compartido_market {
             CompartidoError::WrongSupplier
         );
         require!(
-            ctx.remaining_accounts.len() == campaign.bid_count as usize * 2,
+            ctx.remaining_accounts.len() == settlement_bid_account_count(campaign.bid_count),
             CompartidoError::IncompleteBidSet
         );
 
@@ -901,14 +902,66 @@ pub mod compartido_market {
         Ok(())
     }
 
-    /// Emergency exit for a room whose private matching data cannot be read.
-    /// It is available only to the organizer after the deadline and always
-    /// produces full participant refunds; it can never pay the organizer.
-    pub fn cancel_campaign<'a>(ctx: Context<'a, CancelCampaign<'a>>) -> Result<()> {
+    /// Marks every delegated commitment for a full refund without reading any
+    /// private budget. The accounts can then be returned to Solana, where the
+    /// token transfers are executed by `cancel_campaign`.
+    pub fn prepare_cancellation(ctx: Context<ComputeAllocations>) -> Result<()> {
         let campaign = &mut ctx.accounts.campaign;
         require!(
             campaign.status == CampaignStatus::Open
                 || campaign.status == CampaignStatus::OfferSelected,
+            CompartidoError::CampaignNotOpen
+        );
+        require!(
+            Clock::get()?.unix_timestamp >= campaign.deadline,
+            CompartidoError::DeadlineNotReached
+        );
+        require!(
+            ctx.remaining_accounts.len() == settlement_bid_account_count(campaign.bid_count),
+            CompartidoError::IncompleteBidSet
+        );
+
+        let mut seen = BTreeSet::new();
+        for info in ctx.remaining_accounts.iter() {
+            require_keys_eq!(*info.owner, crate::ID, CompartidoError::InvalidAccountOwner);
+            require!(info.is_writable, CompartidoError::AccountMustBeWritable);
+            let data = info.try_borrow_data()?;
+            let mut slice: &[u8] = &data;
+            let mut bid =
+                Bid::try_deserialize(&mut slice).map_err(|_| CompartidoError::InvalidBidAccount)?;
+            drop(data);
+            require_keys_eq!(bid.campaign, campaign.key(), CompartidoError::WrongCampaign);
+            require!(!bid.settled, CompartidoError::BidAlreadySettled);
+            require!(seen.insert(bid.buyer), CompartidoError::DuplicateAccount);
+            let expected_bid = Pubkey::find_program_address(
+                &[BID_SEED, campaign.key().as_ref(), bid.buyer.as_ref()],
+                ctx.program_id,
+            )
+            .0;
+            require_keys_eq!(info.key(), expected_bid, CompartidoError::InvalidBidAccount);
+
+            bid.allocated_quantity = 0;
+            bid.refund_owed = bid.deposit;
+            bid.allocation_computed = true;
+            let mut data = info.try_borrow_mut_data()?;
+            bid.try_serialize(&mut &mut data[..])?;
+        }
+
+        campaign.winning_supplier = campaign.creator;
+        campaign.allocated_quantity = 0;
+        campaign.status = CampaignStatus::AllocationsComputed;
+        Ok(())
+    }
+
+    /// Base-layer completion of a prepared cancellation. It is available only
+    /// to the organizer after the deadline, returns every full deposit, and can
+    /// never pay the organizer.
+    pub fn cancel_campaign<'a>(ctx: Context<'a, CancelCampaign<'a>>) -> Result<()> {
+        let campaign = &mut ctx.accounts.campaign;
+        require!(
+            campaign.status == CampaignStatus::Open
+                || campaign.status == CampaignStatus::OfferSelected
+                || campaign.status == CampaignStatus::AllocationsComputed,
             CompartidoError::CampaignNotOpen
         );
         require!(
@@ -1126,6 +1179,16 @@ fn checked_cost(quantity: u16, unit_price: u64) -> Result<u64> {
     u64::from(quantity)
         .checked_mul(unit_price)
         .ok_or_else(|| error!(CompartidoError::MathOverflow))
+}
+
+fn private_allocation_account_count(bid_count: u16) -> Result<usize> {
+    usize::from(bid_count)
+        .checked_mul(2)
+        .ok_or_else(|| error!(CompartidoError::MathOverflow))
+}
+
+fn settlement_bid_account_count(bid_count: u16) -> usize {
+    usize::from(bid_count)
 }
 
 fn permission_member(pubkey: Pubkey) -> Member {
@@ -1956,5 +2019,13 @@ mod tests {
         assert!(outcomes
             .iter()
             .all(|outcome| outcome.refund_owed == 1_800_000));
+    }
+
+    #[test]
+    fn instruction_account_counts_match_client_wiring() {
+        assert_eq!(private_allocation_account_count(0).unwrap(), 0);
+        assert_eq!(private_allocation_account_count(3).unwrap(), 6);
+        assert_eq!(settlement_bid_account_count(0), 0);
+        assert_eq!(settlement_bid_account_count(3), 3);
     }
 }

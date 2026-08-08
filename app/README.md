@@ -6,7 +6,7 @@ Compart's React 19 + TypeScript + Vite frontend separates the product overview f
 - `/#app` — invite-only room lobby and wallet-scoped activity;
 - `/?room=<CAMPAIGN>#app` — a specific room shared by invite link.
 
-The live app includes organizer room creation, room-address or invite-link entry, participant commitments, host quotes, organizer settlement, lifecycle and transaction progress, room outcomes, previous-room history, prototype receipts, and visible privacy proof.
+The live app includes organizer room creation, one-time participant invitations, private participant commitments, organizer settlement, automatic failed-room refunds, lifecycle feedback, wallet-scoped room history, prototype receipts, and visible privacy proof.
 
 ## Source map
 
@@ -30,22 +30,23 @@ npm --prefix app run dev -- --host 127.0.0.1 --port 4173
 
 Open `http://127.0.0.1:4173`. The app defaults to the verified Solana devnet program. It has no public room directory: a visitor creates a room or opens an invitation, while a connected wallet sees only rooms it created, joined, or received a receipt from. Wallet actions are real devnet transactions and always require approval from an injected Solana wallet such as Phantom or Solflare.
 
-All app amounts are entered, displayed, and transferred as devnet SOL; no fiat-dollar or USDC exchange rate is implied.
+All room amounts are entered, displayed, and transferred as Circle devnet USDC. Devnet SOL is used only for transaction fees. Neither asset has real-world value on devnet.
 
 ## Configure devnet
 
 Copy `.env.example` to `.env.local` when you want to override the default RPC endpoints. The public deployment does not inject a featured campaign or demo room metadata. The live app can:
 
 - create a new room and treasury account;
-- create an unlisted room or join from a participant/supplier invitation;
+- create an unlisted room or join from a one-time participant invitation;
 - create the equal public deposit and participant commitment;
 - delegate a participant account to MagicBlock's hosted TEE;
 - create or update an authenticated private budget;
-- post a public supplier group quote;
-- run the organizer's verified allocation and settlement lifecycle;
-- claim a participant refund or prototype receipt after settlement.
+- let the organizer select a final goal inside the room's approved range;
+- run private eligibility matching and public organizer settlement;
+- automatically return full deposits when the organizer cancels a failed room;
+- claim a successful-room excess refund or prototype receipt after settlement.
 
-Public accommodation details that are not part of the compact on-chain campaign account are included in share links and cached locally. Deposits, deadlines, roles, quotes, allocations, refunds, and receipts are always read from authoritative program accounts.
+Public plan details that are not part of the compact on-chain campaign account are included in share links and cached locally. Deposits, deadlines, access, allocations, refunds, and receipts are read from authoritative program accounts.
 
 Never commit `.env.local` or a wallet keypair. The app does not need a private key in its environment; transactions are approved through the user's wallet.
 
@@ -60,6 +61,6 @@ The build performs TypeScript checking before Vite emits static assets to `app/d
 
 ## Network behavior
 
-Explorer links and network labels follow `VITE_SOLANA_NETWORK`. Use `.env.mainnet.example` only after the program is genuinely deployed on mainnet. Until real supplier inventory is integrated, all receipts remain explicitly labeled as prototypes.
+Explorer links and network labels follow `VITE_SOLANA_NETWORK`. Use `.env.mainnet.example` only after the program is genuinely deployed on mainnet. Until a real purchase or reservation integration exists, all receipts remain explicitly labeled as prototypes.
 
-See the repository [README](../README.md), [architecture](../ARCHITECTURE.md), and [hosted proof](../HOSTED_DEVNET_PROOF.md) for the full protocol context.
+See the repository [README](../README.md), [architecture](../ARCHITECTURE.md), and [current audit](../AUDIT_REPORT.md) for the full protocol context.

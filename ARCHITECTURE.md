@@ -5,7 +5,7 @@
 Compart separates a person's secret spending limit from the public proof that
 they joined the group.
 
-- Solana holds the room rules, equal deposits, supplier quotes, final outcomes,
+- Solana holds the room rules, equal deposits, selected goal, final outcomes,
   refunds, and receipts.
 - MagicBlock's Private Ephemeral Rollup temporarily holds each person's maximum
   price and performs the matching inside its TEE.
@@ -24,7 +24,6 @@ Solana base layer
 │   ├── buyer and requested quantity
 │   ├── fixed public deposit
 │   └── allocation, charge, and refund outcome
-├── Supplier offers
 └── Prototype booking receipts
 
 MagicBlock Private Ephemeral Rollup / TEE
@@ -46,8 +45,9 @@ public cap for the requested quantity.
 4. The wallet authenticates to the Private ER by signing a message.
 5. The buyer creates or updates an ER-only `PrivateBudget` and gives read access
    only to themselves and the organizer.
-6. The organizer delegates the campaign and computes the allocation in the TEE
-   using the public commitments, private budgets, and supplier offers.
+6. After the deadline, the organizer selects a goal inside the approved range,
+   delegates the campaign, and computes eligibility in the TEE using the public
+   commitments and private budgets.
 7. The TEE writes only allocation, charge, refund, clearing price, and status into
    the delegated public accounts. `PrivateBudget` accounts are not committed.
 8. The outcome accounts return to Solana and base-layer settlement verifies the
@@ -59,7 +59,7 @@ Public by design:
 
 - who committed and how much quantity they requested;
 - the same fixed deposit for each unit;
-- participant count, deadline, supplier offers, and room status;
+- participant count, deadline, approved goal range, selected goal, and room status;
 - final allocation, common price, charge, and refund.
 
 Private by design:
@@ -77,18 +77,19 @@ the private budget account never appears on the Solana base layer.
 accepted charge = allocated quantity × uniform clearing price
 accepted refund = fixed deposit − accepted charge
 rejected refund = fixed deposit
-supplier payout = total allocated quantity × clearing price
+organizer payout = total allocated quantity × clearing price
 ```
 
-If the required quantity is not reached, every allocation and supplier payout is
+If the required quantity is not reached, every allocation and organizer payout is
 zero and every participant receives the full deposit as their refund liability.
 Settlement is rejected until the private allocation has been computed and its
 public outcomes returned.
 
 ## Failure handling
 
-- Campaign expires without a viable offer: all deposits become refundable.
-- Supplier offer cannot cover the required quantity: it cannot win.
+- Campaign cannot reach its selected goal: settlement records no payout and full refunds.
+- The selected goal cannot clear after the deadline: while the private runtime is reachable, the organizer can prepare cancellation and then atomically return every full deposit on Solana.
+- Total Private ER outage: cancellation must wait until the delegated accounts are reachable again; the current prototype cannot bypass that trust boundary.
 - Commitment arrives after the deadline: reject without changing state.
 - Early undelegation: reject until allocation has been computed.
 - Missing or inconsistent payout accounts: fail before moving settlement funds.

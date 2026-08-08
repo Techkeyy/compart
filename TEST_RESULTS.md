@@ -1,5 +1,7 @@
 # Test Results
 
+> **Historical proof archive.** The lifecycle results below were produced by the retired supplier prototype at program `9f6nQaRukJ7Gd4ks3ypRyWDe8eSm3V1EHbmoHwLm3HTs`. They do not prove the current program `E2jBtfWynBhkA7yxXfNFPrhpKuEZwweuvb1GDNzkRDEh`. See `AUDIT_REPORT.md` for current, reproducible checks.
+
 ## Current result
 
 The outcome-only privacy design passes locally and on hosted devnet against the
