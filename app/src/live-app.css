@@ -108,6 +108,11 @@
 .manual-pledge { display: grid; gap: 6px; margin: -5px auto 17px; max-width: 245px; text-align: left; }
 .manual-pledge > span { color: #71818b; font-size: 12px; font-weight: 750; }
 .manual-pledge input { width: 100%; box-sizing: border-box; border: 1px solid #cdd9d4; border-radius: 10px; padding: 10px 12px; color: #183747; background: white; font-size: 15px; font-weight: 800; }
+.organizer-contribution { display: grid; gap: 10px; margin: 8px 0 17px; padding: 13px; border: 1px solid #d9e2de; border-radius: 11px; background: #f4f8f5; }
+.organizer-contribution label { display: grid; gap: 5px; }
+.organizer-contribution label > span { color: #60737d; font-size: 12px; font-weight: 800; }
+.organizer-contribution input { width: 100%; box-sizing: border-box; border: 1px solid #cbd7d2; border-radius: 9px; padding: 10px 11px; color: #183747; background: white; font-size: 15px; font-weight: 800; }
+.organizer-contribution p { margin: 0; color: #60737d; font-size: 12px; line-height: 1.5; }
 .faucet-actions { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 2px; }
 .faucet-actions .faucet-link { margin-top: 13px; }
 .faucet-link.subtle { color: #47616b; }

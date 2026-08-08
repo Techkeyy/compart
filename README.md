@@ -1,141 +1,77 @@
 # Compart
 
-**Private group purchasing on Solana, powered by MagicBlock Private Ephemeral Rollups.**
+**A private group fund for shared plans, built on Solana devnet and MagicBlock Private Ephemeral Rollups.**
 
-[Open the overview](https://techkeyy.github.io/compart/) · [Enter the live app](https://techkeyy.github.io/compart/#app) · [View the hosted proof](HOSTED_DEVNET_PROOF.md) · [Read the architecture](ARCHITECTURE.md)
+[Open the app](https://techkeyy.github.io/compart/) · [Program on Solana Explorer](https://explorer.solana.com/address/E2jBtfWynBhkA7yxXfNFPrhpKuEZwweuvb1GDNzkRDEh?cluster=devnet) · [MagicBlock docs](https://docs.magicblock.gg/pages/overview/products)
 
-Compart is a private group fund for a shared plan. An organizer sets a minimum viable goal, a maximum approved goal, and a deadline. Everyone—including the organizer if they choose—privately states what they can cover behind the same public escrow cap. The plan proceeds only when enough private commitments can cover a final amount inside the agreed goal range; otherwise participants can reclaim their deposits.
+Compart helps a group decide whether it can afford a shared plan—without asking everyone to announce their budget. It is suited to an apartment, a trip, an event, a shared subscription, or any purchase where one person should not have to front the full amount.
 
-The live product starts with a private-room lobby rather than a fixed demo or a public marketplace. An organizer creates an unlisted room and shares one-time participant invitations; a new visitor can create a room or open an invitation, but cannot browse other people’s rooms. Participant and organizer actions are separated. Every room shows its lifecycle, transaction progress, public terms, privacy boundary, final outcome, and available receipts.
+The organizer creates an unlisted room, chooses the number of people, a goal range, a deadline, and a public escrow cap. Each invited participant chooses a private maximum and escrows the same public cap in **Circle devnet USDC**. Once the deadline passes, the organizer selects an amount within the pre-agreed range. If the group can clear it, the program pays the organizer and makes any remaining USDC refundable. If it cannot, every participant can reclaim the full escrow.
 
-All live amount fields are denominated in devnet SOL. Compart does not imply a fiat-dollar or USDC exchange rate.
+This is a **devnet prototype**. Devnet SOL and devnet USDC are free test assets and have no real-world value.
 
-The first room is event accommodation because the pain is immediate: group chats stall, one person often fronts the money, and budgets are socially awkward. The underlying primitive can later support retreats, event passes, memberships, shared software, and other threshold purchases.
+## What is live
 
-## Blitz v7 fit
+- Solana devnet program: `E2jBtfWynBhkA7yxXfNFPrhpKuEZwweuvb1GDNzkRDEh`
+- Circle devnet USDC escrow, organizer payout, and participant refunds
+- MagicBlock Private ER for private maximums and outcome calculation
+- Unlisted rooms and one-time participant claim links
+- Organizer-only settlement after the commitment deadline
+- Wallet-specific room history and onchain prototype receipts
 
-- **Required integration:** participant commitments delegate to MagicBlock Ephemeral Rollups.
-- **Theme — collaboration:** a group coordinates one conditional checkout without exposing individual budgets.
-- **Creativity:** Compart handles the decision before anyone pays, rather than tracking debts after the fact.
-- **Technical depth:** permissioned Private ER state, private matching, and public Solana settlement are connected end to end.
-- **Compelling Solana showcase:** the room, deposits, outcomes, refunds, and prototype receipts are all inspectable on devnet.
+SOL is required only to pay small devnet transaction fees. All room amounts are devnet USDC.
 
-The deal-option publisher is simply the payout role for a selected group option; it is not a hackathon requirement.
+## User flow
 
-## Why it matters
+1. In Phantom, select **Solana Devnet**.
+2. Request free devnet SOL for fees and free devnet USDC from the Circle faucet.
+3. An organizer creates a room, choosing group size, USDC escrow cap, minimum/maximum goal, deadline, and terms.
+4. The organizer shares a newly created one-time participant link. A plain room URL is read-only and cannot be used to commit.
+5. An invited participant sets a private maximum, then approves the visible equal USDC escrow cap in Phantom.
+6. After the deadline, the organizer selects the final goal inside the agreed range and runs settlement.
+7. A successful room pays the organizer and unlocks excess refunds. A failed room unlocks full refunds.
 
-- **Private by default:** a participant's maximum is written only inside the authorized Private ER account.
-- **Useful public signal:** Solana records deposits, demand, supplier offers, allocations, refunds, and prototype receipts.
-- **Shared leverage:** suppliers compete for a complete group instead of six isolated buyers.
-- **Conditional settlement:** nobody should be stuck with the full bill when the group cannot clear a quote.
-- **Concrete wedge, broader protocol:** accommodation keeps the demo understandable without limiting the market primitive.
+The organizer may also join as a participant. Before Phantom opens, the organizer sees both the public escrow amount and the private maximum they selected.
 
-## How the room works
+## Privacy model and current limitation
 
-1. An organizer opens a room with a target group size, deadline, and equal public deposit.
-2. Participants deposit publicly, then delegate their bid accounts to MagicBlock.
-3. Each participant authenticates to the Private ER and stores a private maximum.
-4. Suppliers post public per-person quotes for the complete group.
-5. The organizer computes outcome-only allocations in the private runtime.
-6. Only allocations and refund amounts return to Solana for settlement.
+Public Solana state records the room, group size, equal escrow cap, progress, settlement outcome, and refunds. A participant’s maximum is kept in MagicBlock’s Private ER rather than written into the public bid account.
 
-The public chain learns the outcome it must enforce, not the private values used to reach it. Rooms are unlisted in the product: an organizer creates a one-time participant or supplier claim link, and the recipient connects their own wallet to claim that role onchain. The program rejects a commitment or quote from a wallet without that explicit, matching role—even if it edits an invitation URL or calls the program directly. Public settlement state remains inspectable by anyone who already knows the Solana room address. See [ARCHITECTURE.md](ARCHITECTURE.md) for account boundaries and the full state transition.
+This safe first version uses private maximums to decide who can cover the **equal share** of the organizer-selected goal. It does not yet privately charge each person a different amount from an aggregate total. Implementing variable private payments requires MagicBlock’s private SPL-payment settlement flow; this is the next protocol upgrade, not a behavior the current prototype claims to provide.
 
-## Current devnet deployment
+## Build and verify
 
-| Item | Value |
-| --- | --- |
-| Network | Solana devnet + MagicBlock hosted TEE |
-| Program | [`E2jB…kRDEh`](https://explorer.solana.com/address/E2jBtfWynBhkA7yxXfNFPrhpKuEZwweuvb1GDNzkRDEh?cluster=devnet) |
-| Upgrade authority | Fresh local devnet-only wallet (not committed) |
-| Access model | One-time claim link required for participant or deal-option actions |
-| Full lifecycle evidence | [HOSTED_DEVNET_PROOF.md](HOSTED_DEVNET_PROOF.md) — archival proof for the prior deployment |
-
-The current deployment contains the full role-enforcement program. The recorded hosted lifecycle covers two-wallet privacy denial, outcome-only allocation, settlement, three refunds, and two prototype receipts on the prior deployment; reproducible details live in [TEST_RESULTS.md](TEST_RESULTS.md).
-
-## Repository map
-
-| Path | Purpose |
-| --- | --- |
-| `programs/compartido-market/` | Anchor program and market state machine |
-| `app/` | Responsive React/Vite overview, room lobby, creation flow, role workspaces, and history |
-| `tests/` | Local Solana, local Private ER, and hosted-devnet lifecycle tests |
-| `scripts/` | Campaign initialization and hosted-proof utilities |
-| `artifacts/compartido-market/` | Verified program binary, IDL, and artifact metadata |
-| `.github/workflows/` | GitHub Pages deployment |
-
-The internal crate and IDL keep the compatibility name `compartido_market`; changing it would break the established program ID and upgrade path.
-
-## Quick start
-
-Requirements: Node.js 20.19 or newer, npm, and a Rust toolchain. Solana/Anchor tooling is needed only for local validator or deployment work.
+Requirements: Node.js 20+, npm, Rust, Solana CLI, and Anchor for program work.
 
 ```bash
-npm install
 npm --prefix app ci
-npm run verify
+cargo fmt --all -- --check
+cargo check -p compartido-market
+npm --prefix app run build
 ```
 
 Run the frontend locally:
 
 ```bash
-npm --prefix app run dev -- --host 127.0.0.1 --port 4173
+npm --prefix app run dev
 ```
 
-Open `http://127.0.0.1:4173`. The lobby has no public room directory: create a room or paste a complete invitation. Once connected, a wallet sees only rooms it created, joined, or received a receipt from. Creating a room or taking a room action requires an injected Solana wallet and explicit transaction approval. Copy `app/.env.example` to `app/.env.local` only when overriding the default network endpoints for local development. Environment files containing local values remain ignored by Git.
+## Repository map
 
-## Verification levels
+| Path | Purpose |
+| --- | --- |
+| `app/` | React/Vite frontend and wallet transaction builders |
+| `programs/compartido-market/` | Anchor program for rooms, USDC escrow, private matching, settlement, and refunds |
+| `tests/` | Program and lifecycle tests |
+| `.github/workflows/` | GitHub Pages deployment |
+| `DEMO_SCRIPT.md` | Submission walkthrough |
+| `GROUP_FUND_DESIGN.md` | Product and protocol design |
 
-### Safe on any development machine
+## Safety boundaries
 
-```bash
-cargo fmt --all -- --check
-cargo test -p compartido-market --lib
-cargo clippy -p compartido-market --lib -- -D warnings
-npm --prefix app run build
-```
+- Never use mainnet assets in this prototype.
+- A room is a funding coordination tool, not a real inventory reservation or legally binding booking.
+- Do not share wallet recovery phrases or private keys.
+- A production deployment needs independent smart-contract review, durable shared-room metadata, real inventory integrations, dispute handling, and monitoring.
 
-`npm run verify` runs the unit tests and production frontend build.
-
-### Requires local validators
-
-```bash
-npm run test:local
-npm run test:private-local
-```
-
-These lifecycle tests expect the corresponding local Solana and MagicBlock stacks described in [SETUP_NOTES.md](SETUP_NOTES.md).
-
-### Uses hosted devnet state
-
-```bash
-npm run test:hosted
-```
-
-Do not treat the hosted command as a routine unit test: it requires `SOLANA_KEYPAIR` and `PROOF_KEYS_DIR` outside the repository, creates accounts, and spends devnet SOL. The checked evidence is already recorded in [HOSTED_DEVNET_PROOF.md](HOSTED_DEVNET_PROOF.md).
-
-## Prototype and security boundaries
-
-- The live deployment uses devnet value only.
-- A receipt is a **prototype booking voucher**, not proof of real accommodation inventory.
-- No wallet secret, proof key, or `.env.local` file belongs in the repository.
-- A production launch still needs an independent program audit, supplier inventory integration, dispute handling, and operational monitoring.
-- Mainnet deployment remains optional until it is sponsored or economically justified; devnet is the verified hackathon target.
-
-## Project documents
-
-- [BUILD_PLAN.md](BUILD_PLAN.md) — delivery scope and remaining submission work
-- [ARCHITECTURE.md](ARCHITECTURE.md) — public/private account model and lifecycle
-- [TEST_RESULTS.md](TEST_RESULTS.md) — reproducible verification record
-- [HOSTED_DEVNET_PROOF.md](HOSTED_DEVNET_PROOF.md) — hosted TEE evidence
-- [DEMO_SCRIPT.md](DEMO_SCRIPT.md) — 90–120 second submission walkthrough
-- [SETUP_NOTES.md](SETUP_NOTES.md) — local validator and environment notes
-
-## Official MagicBlock references
-
-- [Ephemeral Rollups quickstart](https://docs.magicblock.gg/pages/ephemeral-rollups-ers/how-to-guide/quickstart)
-- [Private ER access control](https://docs.magicblock.gg/pages/private-ephemeral-rollups-pers/how-to-guide/access-control)
-- [Magic Router](https://docs.magicblock.gg/pages/ephemeral-rollups-ers/introduction/magic-router)
-- Official example repository vendored during development at reference commit `a291e4b2c9cc4bab6918ff434d9aaa72c702cf29`
-
-Built for **Solana Blitz v7** by [Techkeyy](https://github.com/Techkeyy).
+Built for **MagicBlock Solana Blitz v7 — Collaboration** by [Techkeyy](https://github.com/Techkeyy).
