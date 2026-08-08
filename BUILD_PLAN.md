@@ -115,12 +115,22 @@ Submission evidence required:
 - Public regression proves the public bid has no maximum-price field and settlement
   cannot occur before private allocation.
 - The optimized 482,544-byte program and current IDL are saved under `artifacts/`.
-- The participant frontend connects a wallet and implements the public deposit,
-  delegation, authenticated TEE, private-budget create/update, and Explorer proof
-  path.
-- Live campaign/offer reads, supplier quote transactions, participant refund
-  claims, and prototype receipt transactions are wired into the frontend.
-- Wallet-free preview interactions are clearly distinguished from live actions.
+- The frontend opens in a live Solana room lobby instead of a hardcoded campaign.
+- Organizers can create rooms on devnet; participants can enter an address or full
+  invite link, and public accommodation details travel with the shared link.
+- Participant, host, and organizer workspaces are separated, with creator-wallet
+  verification protecting organizer settlement controls.
+- The participant flow implements the public deposit, account delegation,
+  authenticated TEE session, private-budget create/update, and Explorer proof path.
+- Supplier quotes, the organizer's full private-allocation lifecycle, public
+  settlement, participant refunds, and prototype receipt transactions are wired
+  into the frontend.
+- Transaction steppers show each wallet and network stage, while the room lifecycle
+  explains collecting, quoting, private matching, settlement, and completion.
+- Every room includes its public purchase brief, dates, terms, privacy boundary,
+  success/failure result, and links to verifiable program and room accounts.
+- Previous rooms and on-chain receipt accounts are available from the activity view.
+- Desktop and 390 px mobile layouts have been visually inspected.
 - The responsive frontend builds and is locally previewable.
 - The verified program artifact is upgraded on hosted devnet and byte-matched
   against an onchain dump.

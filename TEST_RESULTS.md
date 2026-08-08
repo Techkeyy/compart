@@ -112,8 +112,11 @@ integration during the hackathon.
 - All three Rust allocation/privacy unit tests pass.
 - Every JavaScript lifecycle and utility file passes `node --check`.
 - TypeScript checking and the Vite production build pass.
-- Desktop and 390 px mobile renders of both the overview and live room were
-  inspected after the UI cleanup.
+- Desktop and 390 px mobile renders of the lobby, room creation flow, participant,
+  host, and organizer workspaces were inspected after the full workflow build.
+- Room discovery, dynamic address routing, share-link metadata, role separation,
+  lifecycle and transaction steppers, result states, history/receipts, and privacy
+  proof are included in the production TypeScript build.
 - Root lifecycle dependencies are now declared and locked in `package.json` and
   `package-lock.json`, so the documented test commands no longer depend on an
   undeclared parent installation.

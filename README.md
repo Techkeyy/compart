@@ -6,6 +6,8 @@
 
 Compart lets a group make one conditional purchase without asking everyone to reveal what they can afford. Each person commits the same public deposit and privately sets a maximum. Suppliers quote for the whole group. The purchase clears only when enough private limits can support one quote; otherwise participants can reclaim their deposits.
 
+The live product now starts in a room lobby rather than a fixed demo. Organizers can create rooms, participants can join from an address or share link, and participant, host, and organizer actions are presented in separate workspaces. Every room shows its lifecycle, transaction progress, public terms, privacy boundary, final outcome, and available receipts.
+
 The first room is event accommodation because the pain is immediate: group chats stall, one person often fronts the money, and budgets are socially awkward. The underlying primitive can later support retreats, event passes, memberships, shared software, and other threshold purchases.
 
 ## Why it matters
@@ -44,7 +46,7 @@ The recorded hosted lifecycle covers two-wallet privacy denial, outcome-only all
 | Path | Purpose |
 | --- | --- |
 | `programs/compartido-market/` | Anchor program and market state machine |
-| `app/` | Responsive React/Vite overview and live room |
+| `app/` | Responsive React/Vite overview, room lobby, creation flow, role workspaces, and history |
 | `tests/` | Local Solana, local Private ER, and hosted-devnet lifecycle tests |
 | `scripts/` | Campaign initialization and hosted-proof utilities |
 | `artifacts/compartido-market/` | Verified program binary, IDL, and artifact metadata |
@@ -68,7 +70,7 @@ Run the frontend locally:
 npm --prefix app run dev -- --host 127.0.0.1 --port 4173
 ```
 
-Open `http://127.0.0.1:4173`. Without `VITE_CAMPAIGN_ADDRESS`, the app clearly runs in wallet-free preview mode and moves no funds. To use a real campaign, copy `app/.env.example` to `app/.env.local` and set the campaign address. Environment files containing local values remain ignored by Git.
+Open `http://127.0.0.1:4173`. The app reads the verified devnet program's live room directory without requiring a featured campaign. Creating a room or taking a room action requires an injected Solana wallet and explicit transaction approval. Copy `app/.env.example` to `app/.env.local` only when overriding the default RPCs or setting a featured campaign. Environment files containing local values remain ignored by Git.
 
 ## Verification levels
 
