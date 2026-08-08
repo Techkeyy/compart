@@ -37,6 +37,9 @@ jobs:
         env:
           VITE_BASE_PATH: /compart/
           VITE_SOLANA_NETWORK: devnet
+          VITE_SOLANA_RPC_URL: https://api.devnet.solana.com
+          VITE_MAGICBLOCK_TEE_URL: https://devnet-tee.magicblock.app
+          VITE_CAMPAIGN_ADDRESS: B58nZRh9XEvUMNN45TdUmTaXQTbAWFUDcqnKC28i4jfh
         run: npm run build
 
       - name: Configure Pages

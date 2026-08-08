@@ -3,8 +3,8 @@
 ## Current result
 
 The outcome-only privacy design passes locally against the full MagicBlock stack.
-The remaining verification is to repeat the same lifecycle on hosted devnet and
-save its transaction signatures before the preferred mainnet proof deployment.
+The verified program artifact and a live campaign are now on hosted devnet. The
+remaining verification is the hosted two-wallet privacy and full settlement run.
 
 ## Rust allocation tests — passed
 
@@ -79,22 +79,22 @@ the official SDK integration during the hackathon.
 ## Hosted network status
 
 - Deployer: `B1QKnX6RHfA8Bx3S8zzJGSKNiXbSTa7yy33fZJDWgsWS`
-- Devnet balance checked: 1.44912932 SOL.
-- An older artifact is deployed at program ID
-  `9f6nQaRukJ7Gd4ks3ypRyWDe8eSm3V1EHbmoHwLm3HTs` and its upgrade authority matches
-  the deployer.
-- The new 482,544-byte artifact fits within the existing devnet program account.
-- Required temporary loader buffer, including its 37-byte header: 3.35965464 SOL
-  plus a small fee margin. Budget about 3.37 SOL. The
-  buffer rent is reclaimed after a successful upgrade.
-- Devnet faucet requests were rate limited, so the hosted upgrade is waiting for
-  additional devnet SOL.
+- Program: `9f6nQaRukJ7Gd4ks3ypRyWDe8eSm3V1EHbmoHwLm3HTs`
+- Upgrade completed at slot `482003683` with signature
+  `3raMu9eKGDrjgvB2rm1Lu853Fsg6UW6KxWgAXvtZEEP5MbGPGN8HSToUtNFNxrRxX8TbPcyoToxPJ9ckMdybfeyK`.
+- The first 482,544 bytes dumped from the deployed program match the verified local
+  artifact exactly; the existing account retains its larger reserved allocation.
+- The temporary loader buffer was closed and its rent returned. Deployer balance
+  after the upgrade was 6.44672932 devnet SOL.
+- Live campaign: `B58nZRh9XEvUMNN45TdUmTaXQTbAWFUDcqnKC28i4jfh`.
+- Campaign initialization signature:
+  `3BMKUWMNUU3JSNnqG2pa9apcFC5NJKMtfj8MmsEwF6BMf6Enxo11eZnaxVwetEeCCStRbxVizceTMiBzpkPcZPpP`.
+- Public frontend: `https://techkeyy.github.io/compart/`.
 - Mainnet deployer balance checked: 0 SOL. No mainnet deployment has been claimed.
 
 ## Evidence still required
 
-- Hosted-devnet program upgrade.
 - Hosted two-wallet privacy denial and outcome-only commit signatures.
 - Hosted settlement/refund/receipt signature and Explorer link.
-- Mainnet funding, deployment, and minimal proof transaction.
-- Deployed frontend URL configured with the live campaign address.
+- Pitch/demo recording.
+- Mainnet deployment remains a sponsor-funded stretch goal, not a submission blocker.

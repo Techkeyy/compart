@@ -1,0 +1,12 @@
+{
+  "name": "compart-scripts",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "initialize:devnet": "node initialize-campaign.js"
+  },
+  "dependencies": {
+    "@coral-xyz/anchor": "0.32.1",
+    "@solana/web3.js": "1.98.4"
+  }
+}

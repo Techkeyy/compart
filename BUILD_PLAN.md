@@ -122,13 +122,17 @@ Submission evidence required:
   claims, and prototype receipt transactions are wired into the frontend.
 - Wallet-free preview interactions are clearly distinguished from live actions.
 - The responsive frontend builds and is locally previewable.
+- The verified program artifact is upgraded on hosted devnet and byte-matched
+  against an onchain dump.
+- The live six-person festival campaign is initialized on devnet.
+- The public frontend is deployed at `https://techkeyy.github.io/compart/`.
+- The public source repository is `https://github.com/Techkeyy/compart`.
 
 ### In progress
 
-- Upgrading the hosted devnet program to the verified artifact.
 - Saving hosted devnet transaction signatures for delegation, private read denial,
   outcome commit, settlement, and refund.
-- Creating the live campaign address used by the frontend.
+- Wiring and verifying the live campaign in the public frontend deployment.
 
 ### Not yet complete
 
@@ -136,7 +140,7 @@ Submission evidence required:
 - Devnet full settlement signature.
 - Mainnet program deployment and minimal proof transaction.
 - Inventory-backed booking voucher or clearly labeled prototype receipt.
-- Deployed URL and recorded demo.
+- Recorded demo.
 
 ## Implemented correctness rules
 
@@ -239,11 +243,9 @@ Target: hours 5-9.
 - Prove Wallet A is rejected when reading Wallet B's budget.
 - Complete one ER update and commit only the public outcome.
 
-Local exit criteria are satisfied. Hosted-devnet exit criteria require saved
-transaction signatures and logs. The current devnet wallet has 1.44912932 SOL; the
-482,544-byte upgrade requires a temporary 3.35965464 SOL loader buffer plus fees,
-which is reclaimed after a successful upgrade. Faucet requests are currently rate
-limited.
+Local exit criteria are satisfied. The hosted program upgrade is also complete and
+the live campaign is initialized. Hosted-devnet exit criteria now require saved
+privacy-denial, outcome-commit, settlement, refund, and receipt signatures/logs.
 
 ### Gate 3 — Build one polished room — participant path complete
 
@@ -282,7 +284,7 @@ Target: hours 16-19.
 
 Exit criteria: the demo can be repeated twice without manual state repair.
 
-### Gate 5 — Submission and pitch
+### Gate 5 — Submission and pitch — repository and frontend published
 
 Target: hours 19-24.
 

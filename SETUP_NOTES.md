@@ -85,13 +85,21 @@ Configured deployer:
 
 `B1QKnX6RHfA8Bx3S8zzJGSKNiXbSTa7yy33fZJDWgsWS`
 
-- Devnet balance at the last check: 1.44912932 SOL.
+- Devnet balance after the verified upgrade: 6.44672932 SOL.
 - Mainnet balance at the last check: 0 SOL.
 - Exact rent-exempt minimum for the 482,544-byte deployment buffer plus its
   37-byte loader header: 3.35965464 SOL, plus transaction fees. Budget about
   3.37 SOL.
 - The buffer rent is temporary and is reclaimed after a successful upgrade.
-- Devnet faucet requests were rate limited; no mainnet deployment has been claimed.
+- The devnet upgrade completed at slot `482003683`. The onchain program bytes match
+  the 482,544-byte local artifact, and the loader buffer was closed after its rent
+  was reclaimed.
+- Upgrade signature:
+  `3raMu9eKGDrjgvB2rm1Lu853Fsg6UW6KxWgAXvtZEEP5MbGPGN8HSToUtNFNxrRxX8TbPcyoToxPJ9ckMdybfeyK`.
+- Live campaign: `B58nZRh9XEvUMNN45TdUmTaXQTbAWFUDcqnKC28i4jfh`.
+- Campaign initialization signature:
+  `3BMKUWMNUU3JSNnqG2pa9apcFC5NJKMtfj8MmsEwF6BMf6Enxo11eZnaxVwetEeCCStRbxVizceTMiBzpkPcZPpP`.
+- No mainnet deployment has been claimed.
 
 For the existing devnet program, the loader buffer is temporary. For a new mainnet
 deployment, budget about 3.37 SOL; most of the size-based cost remains as rent in
