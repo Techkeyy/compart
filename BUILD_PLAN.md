@@ -127,17 +127,15 @@ Submission evidence required:
 - The live six-person festival campaign is initialized on devnet.
 - The public frontend is deployed at `https://techkeyy.github.io/compart/`.
 - The public source repository is `https://github.com/Techkeyy/compart`.
+- The hosted Private ER lifecycle passes with two-wallet denial, outcome-only
+  allocation, settlement, refunds, and prototype receipts.
 
 ### In progress
 
-- Saving hosted devnet transaction signatures for delegation, private read denial,
-  outcome commit, settlement, and refund.
-- Wiring and verifying the live campaign in the public frontend deployment.
+- Recording the final demo and assembling the submission entry.
 
 ### Not yet complete
 
-- Hosted-devnet full lifecycle proof.
-- Devnet full settlement signature.
 - Mainnet program deployment and minimal proof transaction.
 - Inventory-backed booking voucher or clearly labeled prototype receipt.
 - Recorded demo.
@@ -233,7 +231,7 @@ Target: hours 0-5.
 Exit criteria: the revised program builds and deterministic local tests cover both
 successful and failed group thresholds.
 
-### Gate 2 — Prove MagicBlock lifecycle — local complete, hosted devnet pending
+### Gate 2 — Prove MagicBlock lifecycle — complete
 
 Target: hours 5-9.
 
@@ -243,9 +241,9 @@ Target: hours 5-9.
 - Prove Wallet A is rejected when reading Wallet B's budget.
 - Complete one ER update and commit only the public outcome.
 
-Local exit criteria are satisfied. The hosted program upgrade is also complete and
-the live campaign is initialized. Hosted-devnet exit criteria now require saved
-privacy-denial, outcome-commit, settlement, refund, and receipt signatures/logs.
+Both local and hosted-devnet exit criteria are satisfied. The hosted run saved
+privacy-denial output, outcome-commit signatures, settlement, all three refunds,
+and two prototype receipt transactions.
 
 ### Gate 3 — Build one polished room — participant path complete
 
@@ -271,7 +269,7 @@ receipt paths are implemented and build cleanly. Organizer finalization remains
 script-driven until the hosted campaign is available; a compact organizer control
 can then replace the script if time permits.
 
-### Gate 4 — End-to-end hosted-devnet demo
+### Gate 4 — End-to-end hosted-devnet demo — complete
 
 Target: hours 16-19.
 

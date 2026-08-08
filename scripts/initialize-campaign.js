@@ -7,10 +7,26 @@ const PROGRAM_ID = new anchor.web3.PublicKey(
 );
 const RPC_URL = process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
 const KEYPAIR_PATH = process.env.SOLANA_KEYPAIR;
+const REPO_ROOT = path.resolve(
+  process.env.COMPART_REPO_ROOT || path.join(__dirname, ".."),
+);
 
 if (!KEYPAIR_PATH) {
   throw new Error("Set SOLANA_KEYPAIR to a keypair file outside the repository.");
 }
+
+function assertOutsideRepository(value, label) {
+  const relative = path.relative(REPO_ROOT, path.resolve(value));
+  const outside =
+    relative === ".." ||
+    relative.startsWith(`..${path.sep}`) ||
+    path.isAbsolute(relative);
+  if (!outside) {
+    throw new Error(`${label} must be outside the repository.`);
+  }
+}
+
+assertOutsideRepository(KEYPAIR_PATH, "SOLANA_KEYPAIR");
 
 function u64Le(value) {
   const data = Buffer.alloc(8);

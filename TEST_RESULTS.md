@@ -2,9 +2,9 @@
 
 ## Current result
 
-The outcome-only privacy design passes locally against the full MagicBlock stack.
-The verified program artifact and a live campaign are now on hosted devnet. The
-remaining verification is the hosted two-wallet privacy and full settlement run.
+The outcome-only privacy design passes locally and on hosted devnet against the
+full MagicBlock stack. The verified artifact, live public campaign, hosted
+two-wallet privacy proof, settlement, refunds, and receipts are complete.
 
 ## Rust allocation tests — passed
 
@@ -61,6 +61,32 @@ This is the core privacy proof: private values participate in computation withou
 being copied to the base layer, while public settlement still has enough outcome
 data to enforce its accounting rules.
 
+## Hosted Private ER lifecycle — passed
+
+`tests/hosted-devnet-lifecycle.js` repeated the full lifecycle through Solana
+devnet and `https://devnet-tee.magicblock.app`.
+
+Verified results:
+
+```text
+campaign E96bS6AiPobPYKTf3iAqsEHomRKCc8go2txTNkV2JnUK
+ownerCanReadPrivateBudget true
+ownerCanUpdatePrivateBudget true
+otherBuyerDenied true
+organizerCanCompute true
+earlyUndelegationBlocked true
+privateBudgetsOnBase [false,false,false]
+allocations [1,1,0]
+refundsBeforeClaim [800000,800000,1800000]
+supplierPayout 2000000
+status settled
+receiptsOnBase [true,true]
+```
+
+Solana's official devnet RPC independently reported every checked initialization,
+settlement, refund, and receipt signature as finalized with no error. See
+`HOSTED_DEVNET_PROOF.md` for direct Explorer links.
+
 ## Build verification — passed
 
 - Anchor/SBPF program build passes.
@@ -94,7 +120,5 @@ the official SDK integration during the hackathon.
 
 ## Evidence still required
 
-- Hosted two-wallet privacy denial and outcome-only commit signatures.
-- Hosted settlement/refund/receipt signature and Explorer link.
 - Pitch/demo recording.
 - Mainnet deployment remains a sponsor-funded stretch goal, not a submission blocker.

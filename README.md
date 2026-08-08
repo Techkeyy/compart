@@ -45,6 +45,9 @@ payments or claim to have booked inventory without a supplier integration.
   bytes match the local artifact exactly.
 - Live campaign: `B58nZRh9XEvUMNN45TdUmTaXQTbAWFUDcqnKC28i4jfh`.
 - Campaign initialization: [view the confirmed devnet transaction](https://explorer.solana.com/tx/3BMKUWMNUU3JSNnqG2pa9apcFC5NJKMtfj8MmsEwF6BMf6Enxo11eZnaxVwetEeCCStRbxVizceTMiBzpkPcZPpP?cluster=devnet).
+- The full hosted TEE lifecycle passes with two-wallet privacy denial, outcome-only
+  allocation, settlement, three refunds, and two prototype receipts. See
+  [`HOSTED_DEVNET_PROOF.md`](HOSTED_DEVNET_PROOF.md).
 - The internal Anchor crate and artifact retain the compatibility name
   `compartido_market` so the existing program ID and upgrade path do not change.
 - A responsive frontend runs under `app/`, connects an injected Solana wallet, and
@@ -56,8 +59,7 @@ payments or claim to have booked inventory without a supplier integration.
   labeled as no-funds simulations.
 - The local preview is available at `http://127.0.0.1:4173` while the development
   server is running, and the public GitHub Pages deployment uses the live campaign.
-- Next gate: capture hosted two-wallet privacy denial, settlement, refund, and
-  receipt evidence, then record the submission demo.
+- Next gate: record the 90–120 second submission demo and assemble the final entry.
 
 See:
 
@@ -92,12 +94,17 @@ SOLANA_KEYPAIR=/path/outside/repository/id.json npm run initialize:devnet
 cargo test -p compartido-market --lib
 node tests/local-lifecycle.js
 node tests/private-er-lifecycle.js
+node tests/hosted-devnet-lifecycle.js
 cd app && npm run build
 ```
 
 The JavaScript lifecycle tests require their corresponding local Solana and
 MagicBlock validator stacks. See `TEST_RESULTS.md` and `SETUP_NOTES.md` for the
 verified environments and expected evidence.
+
+The hosted test additionally requires `SOLANA_KEYPAIR` and `PROOF_KEYS_DIR`, both
+pointing outside the repository. It uses devnet-only value and never prints test
+wallet secrets.
 
 ## Official MagicBlock references
 

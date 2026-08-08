@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "initialize:devnet": "node initialize-campaign.js"
+    "initialize:devnet": "node initialize-campaign.js",
+    "reclaim:proof-wallets": "node reclaim-proof-wallets.js",
+    "verify:hosted": "node verify-hosted-proof.js"
   },
   "dependencies": {
     "@coral-xyz/anchor": "0.32.1",

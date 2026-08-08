@@ -99,6 +99,13 @@ Configured deployer:
 - Live campaign: `B58nZRh9XEvUMNN45TdUmTaXQTbAWFUDcqnKC28i4jfh`.
 - Campaign initialization signature:
   `3BMKUWMNUU3JSNnqG2pa9apcFC5NJKMtfj8MmsEwF6BMf6Enxo11eZnaxVwetEeCCStRbxVizceTMiBzpkPcZPpP`.
+- The hosted privacy and settlement proof passed against
+  `https://devnet-tee.magicblock.app`. Proof campaign:
+  `E96bS6AiPobPYKTf3iAqsEHomRKCc8go2txTNkV2JnUK`.
+- Settlement signature:
+  `2kkPwByve6VsStk5x3HQRWh4zxozLTkXLvu4okfWuxpJCZs36tkTvV5kRHTMzto9e8PQYhbEgUwivSaZtDbVsDgt`.
+- The official devnet RPC independently confirmed all checked proof signatures as
+  finalized, all three private budgets absent, and both receipts present.
 - No mainnet deployment has been claimed.
 
 For the existing devnet program, the loader buffer is temporary. For a new mainnet
