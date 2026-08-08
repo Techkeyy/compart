@@ -508,12 +508,14 @@ export async function readBuyerRoomAddresses(buyer: PublicKey): Promise<string[]
 export async function readOrganizerRoomAddresses(organizer: PublicKey): Promise<string[]> {
   const accounts = await baseConnection.getProgramAccounts(PROGRAM_ID, {
     commitment: "confirmed",
-    filters: [
-      { dataSize: 203 },
-      { memcmp: { offset: 8, bytes: organizer.toBase58() } },
-    ],
   });
-  return accounts.map(({ pubkey }) => pubkey.toBase58());
+  // Some RPCs can return stale results for a combined data-size and memcmp
+  // filter immediately after an upgraded program creates an account. Read the
+  // small program account set and apply the same strict checks locally.
+  return accounts
+    .filter(({ account }) => account.data.length === 203)
+    .filter(({ account }) => publicKeyAt(account.data, 8) === organizer.toBase58())
+    .map(({ pubkey }) => pubkey.toBase58());
 }
 
 export async function readReceiptsForBuyer(buyer: PublicKey): Promise<ReceiptSnapshot[]> {
