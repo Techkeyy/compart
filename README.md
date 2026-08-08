@@ -6,7 +6,7 @@
 
 Compart lets a group make one conditional purchase without asking everyone to reveal what they can afford. Each person commits the same public deposit and privately sets a maximum. Suppliers quote for the whole group. The purchase clears only when enough private limits can support one quote; otherwise participants can reclaim their deposits.
 
-The live product now starts in a room lobby rather than a fixed demo. Organizers can create rooms, participants can join from an address or share link, and participant, host, and organizer actions are presented in separate workspaces. Every room shows its lifecycle, transaction progress, public terms, privacy boundary, final outcome, and available receipts.
+The live product starts with a private-room lobby rather than a fixed demo or a public marketplace. An organizer creates an unlisted room and shares a participant or supplier invitation; a new visitor can create a room or open an invitation, but cannot browse other people’s rooms. Participant, supplier, and organizer actions are presented in separate workspaces. Every room shows its lifecycle, transaction progress, public terms, privacy boundary, final outcome, and available receipts.
 
 The first room is event accommodation because the pain is immediate: group chats stall, one person often fronts the money, and budgets are socially awkward. The underlying primitive can later support retreats, event passes, memberships, shared software, and other threshold purchases.
 
@@ -27,7 +27,7 @@ The first room is event accommodation because the pain is immediate: group chats
 5. The organizer computes outcome-only allocations in the private runtime.
 6. Only allocations and refund amounts return to Solana for settlement.
 
-The public chain learns the outcome it must enforce, not the private values used to reach it. See [ARCHITECTURE.md](ARCHITECTURE.md) for account boundaries and the full state transition.
+The public chain learns the outcome it must enforce, not the private values used to reach it. Rooms are unlisted in the product, but their public settlement state remains inspectable by anyone who already knows the Solana room address; strict onchain membership allowlists are a future layer. See [ARCHITECTURE.md](ARCHITECTURE.md) for account boundaries and the full state transition.
 
 ## Verified devnet deployment
 
@@ -70,7 +70,7 @@ Run the frontend locally:
 npm --prefix app run dev -- --host 127.0.0.1 --port 4173
 ```
 
-Open `http://127.0.0.1:4173`. The app reads the verified devnet program's live room directory without requiring a featured campaign. Creating a room or taking a room action requires an injected Solana wallet and explicit transaction approval. Copy `app/.env.example` to `app/.env.local` only when overriding the default network endpoints for local development. Environment files containing local values remain ignored by Git.
+Open `http://127.0.0.1:4173`. The lobby has no public room directory: create a room or paste a complete invitation. Once connected, a wallet sees only rooms it created, joined, or received a receipt from. Creating a room or taking a room action requires an injected Solana wallet and explicit transaction approval. Copy `app/.env.example` to `app/.env.local` only when overriding the default network endpoints for local development. Environment files containing local values remain ignored by Git.
 
 ## Verification levels
 

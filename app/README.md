@@ -3,7 +3,7 @@
 Compart's React 19 + TypeScript + Vite frontend separates the product overview from the working application:
 
 - `/` — overview, use cases, protocol explanation, documentation, and product entry points;
-- `/#app` — live room lobby and Solana room directory;
+- `/#app` — invite-only room lobby and wallet-scoped activity;
 - `/?room=<CAMPAIGN>#app` — a specific room shared by invite link.
 
 The live app includes organizer room creation, room-address or invite-link entry, participant commitments, host quotes, organizer settlement, lifecycle and transaction progress, room outcomes, previous-room history, prototype receipts, and visible privacy proof.
@@ -28,14 +28,14 @@ npm --prefix app ci
 npm --prefix app run dev -- --host 127.0.0.1 --port 4173
 ```
 
-Open `http://127.0.0.1:4173`. The app defaults to the verified Solana devnet program and reads its live room directory. Wallet actions are real devnet transactions and always require approval from an injected Solana wallet such as Phantom or Solflare.
+Open `http://127.0.0.1:4173`. The app defaults to the verified Solana devnet program. It has no public room directory: a visitor creates a room or opens an invitation, while a connected wallet sees only rooms it created, joined, or received a receipt from. Wallet actions are real devnet transactions and always require approval from an injected Solana wallet such as Phantom or Solflare.
 
 ## Configure devnet
 
-Copy `.env.example` to `.env.local` when you want to override the default RPC endpoints. The public deployment discovers rooms dynamically and does not inject a featured campaign or demo room metadata. The live app can:
+Copy `.env.example` to `.env.local` when you want to override the default RPC endpoints. The public deployment does not inject a featured campaign or demo room metadata. The live app can:
 
 - create a new room and treasury account;
-- discover public room accounts or join from an address/share link;
+- create an unlisted room or join from a participant/supplier invitation;
 - create the equal public deposit and participant commitment;
 - delegate a participant account to MagicBlock's hosted TEE;
 - create or update an authenticated private budget;

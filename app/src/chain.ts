@@ -435,16 +435,6 @@ export async function readCampaignRoom(
   return { campaign: decodeCampaign(campaignAddress, campaignInfo.data), offers };
 }
 
-export async function readCampaignDirectory(): Promise<CampaignSnapshot[]> {
-  const accounts = await baseConnection.getProgramAccounts(PROGRAM_ID, {
-    commitment: "confirmed",
-    filters: [{ dataSize: 154 }],
-  });
-  return accounts
-    .map(({ pubkey, account }) => decodeCampaign(pubkey, account.data))
-    .sort((a, b) => b.deadline - a.deadline);
-}
-
 export async function readCampaignBids(
   selectedCampaign: PublicKey | string,
 ): Promise<BidSnapshot[]> {
@@ -469,6 +459,17 @@ export async function readBuyerRoomAddresses(buyer: PublicKey): Promise<string[]
     ],
   });
   return accounts.map(({ account }) => publicKeyAt(account.data, 8));
+}
+
+export async function readOrganizerRoomAddresses(organizer: PublicKey): Promise<string[]> {
+  const accounts = await baseConnection.getProgramAccounts(PROGRAM_ID, {
+    commitment: "confirmed",
+    filters: [
+      { dataSize: 154 },
+      { memcmp: { offset: 8, bytes: organizer.toBase58() } },
+    ],
+  });
+  return accounts.map(({ pubkey }) => pubkey.toBase58());
 }
 
 export async function readReceiptsForBuyer(buyer: PublicKey): Promise<ReceiptSnapshot[]> {

@@ -1,70 +1,78 @@
 # Compart Demo Script
 
-## 90-second story
+## 90-second business-pitch walkthrough
 
 ### 0:00–0:12 — The problem
 
-> Group trips break down before checkout. Friends have different budgets, nobody
-> wants to announce their limit in the group chat, and one organizer usually has
-> to front the money. Compart lets the group commit together without exposing
-> what each person can afford.
+> Planning a group stay breaks down before anyone reaches checkout. Friends have
+> different budgets, nobody wants to explain theirs in a group chat, and one
+> organizer is usually asked to carry the financial risk.
 
-Show the Solana Festival House room: dates, six-person target, deadline, equal
-public deposit, and live group progress.
+Open Compart's live app. Show the empty **My rooms** area, plus **Create a room**
+and **Join with invite**.
 
-### 0:12–0:35 — A private commitment
+> Compart is not a public marketplace of everyone’s travel plans. Every room is
+> unlisted by default: you create one, then invite the exact friends and hosts you
+> want involved.
 
-Connect the first wallet and choose a maximum of €165.
+### 0:12–0:27 — Create and invite
 
-> Everyone puts down the same refundable public deposit. My personal maximum goes
-> into MagicBlock's Private Ephemeral Rollup, so neither my friends nor the host can
-> use it to push the price upward.
+Show a prepared room or create one with a group size, equal deposit, deadline,
+and simple prototype terms. In the organizer view, show **Copy participant
+invite** and **Copy supplier invite**.
 
-Approve the deposit/delegation and the authenticated private transaction. Show the
-public Explorer proof, which contains the commitment but not the private maximum.
+> The organizer sends one invitation to the group and another to selected property
+> hosts. They are coordinating one private purchase room—not broadcasting demand to
+> the internet.
 
-### 0:35–0:50 — Prove the privacy
+### 0:27–0:45 — Private commitment
 
-Switch to a second wallet and attempt to read the first wallet's private budget.
-Show the denied request. Then show that the owner can still read and update it.
+Open the participant invitation with Wallet A. Choose a maximum of €165 and run
+the commitment flow. Show the public progress move without showing the €165 limit.
 
-> This is enforced by the private account's permissions, not hidden with CSS or a
-> database promise.
+> Everyone puts down the same refundable public deposit. Their personal maximum
+> is protected in MagicBlock’s private runtime, so neither friends nor suppliers
+> can use it to pressure the price upward.
 
-### 0:50–1:10 — The group clears a quote
+Open the public Explorer transaction.
 
-Show two host quotes: €158 and €142 per person. Close the room and let the organizer
-run allocation inside the TEE.
+> Solana can verify that someone committed. It never receives their private budget.
 
-> Private limits are matched against competing group quotes. The cheapest viable
-> quote wins, accepted friends all pay the same €142 price, and only those outcomes
-> return to Solana.
+### 0:45–1:02 — Competing supply, one fair price
 
-Show that the private budget accounts do not exist on the base layer.
+Open the supplier invitation with two supplier wallets. Show complete-group quotes
+of €158 and €142 per person. Return to the organizer view after the deadline and
+start **Close, match and settle**.
 
-### 1:10–1:25 — Settlement
+> Suppliers compete for the whole group. Compart privately checks whether enough
+> invited people can support a quote, then selects the cheapest quote that clears.
+> It does not reveal why any individual did or did not qualify.
 
-Show the winning host, equal charges, excess-deposit refunds, one rejected buyer's
-full refund, and the prototype booking receipt. Open the final Explorer transaction.
+Show the guided private matching and public settlement steps.
 
-> If the required group cannot clear a quote, the host gets nothing and every
-> commitment becomes fully refundable. Nobody becomes the bank.
+### 1:02–1:20 — Outcome and safety net
 
-### 1:25–1:30 — Close
+Show the settled room: winning supplier, equal €142 allocation price, excess
+refunds, and a participant prototype receipt.
 
-> Accommodation is our first room. The product underneath is private group
-> purchasing for any purchase that becomes possible only when enough people agree.
+> The group pays one fair clearing price. Participants who deposited more receive
+> the difference back. If the room cannot clear, the supplier receives nothing and
+> every participant can reclaim the full deposit. Nobody is forced to become the
+> bank for the group.
 
-## Proof fixture versus product screen
+Open the final Solana Explorer transaction and the receipt account.
 
-The polished product screen uses a six-person festival stay. The short technical
-proof fixture uses three buyers, two suppliers, and a two-person threshold so the
-privacy, allocation, refund, and payout can be demonstrated quickly and repeated
-without manual repair.
+### 1:20–1:30 — Close
 
-## Claims to avoid
+> Compart starts with group accommodation, but the product is bigger: a private
+> group checkout for any purchase that only makes sense once enough people agree.
 
-- Do not say a real property was booked without an inventory integration.
-- Call the receipt a prototype booking voucher.
-- Do not describe preview-mode interactions as transactions.
-- Do not say a budget is private unless the authenticated TEE transaction confirms.
+## Claims to keep precise
+
+- Call the room **unlisted**, not fully secret: anyone who already knows its
+  Solana address can inspect its public settlement state.
+- Say the private maximum is protected only after the authenticated private
+  transaction has completed.
+- Call the final document a **prototype booking voucher**, not proof that a real
+  property was booked.
+- Devnet transfers are prototype accounting, not euros or live customer funds.

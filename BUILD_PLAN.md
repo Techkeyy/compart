@@ -115,11 +115,13 @@ Submission evidence required:
 - Public regression proves the public bid has no maximum-price field and settlement
   cannot occur before private allocation.
 - The optimized 482,544-byte program and current IDL are saved under `artifacts/`.
-- The frontend opens in a live Solana room lobby instead of a hardcoded campaign.
-- The public build does not inject a featured room or demo metadata; it discovers
-  campaign accounts from the deployed program and uses room-specific invite data.
-- Organizers can create rooms on devnet; participants can enter an address or full
-  invite link, and public accommodation details travel with the shared link.
+- The frontend opens in an invite-only room lobby instead of a hardcoded campaign
+  or public marketplace.
+- The public build does not inject a featured room or demo metadata. It does not
+  display a network-wide room feed; connected wallets load only rooms they created,
+  joined, or received a receipt from.
+- Organizers can create unlisted rooms on devnet and copy distinct participant and
+  supplier invitations. Public accommodation details travel with the shared link.
 - Participant, host, and organizer workspaces are separated, with creator-wallet
   verification protecting organizer settlement controls.
 - The participant flow implements the public deposit, account delegation,
@@ -264,7 +266,7 @@ Build only these views:
 
 UX rules:
 
-- One invite link is the primary onboarding path.
+- Role-specific participant and supplier invitations are the primary onboarding path.
 - Explain “private budget” and “public progress” in ordinary language.
 - Do not require users to understand ERs, PDAs, delegation, or RPC routing.
 - Show confirmed signatures rather than simulated success messages.

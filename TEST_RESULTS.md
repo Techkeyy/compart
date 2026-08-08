@@ -120,9 +120,10 @@ integration during the hackathon.
 - Landing-page QA confirms one live-app entry, no decorative frame overlays, and
   no injected festival-room metadata. Live-app typography has a 12 px label and
   14 px body/control readability floor across desktop and mobile.
-- Room discovery, dynamic address routing, share-link metadata, role separation,
-  lifecycle and transaction steppers, result states, history/receipts, and privacy
-  proof are included in the production TypeScript build.
+- Invite-only entry, wallet-scoped room history, dynamic address routing,
+  role-specific share-link metadata, role separation, lifecycle and transaction
+  steppers, result states, history/receipts, and privacy proof are included in the
+  production TypeScript build.
 - Root lifecycle dependencies are now declared and locked in `package.json` and
   `package-lock.json`, so the documented test commands no longer depend on an
   undeclared parent installation.
