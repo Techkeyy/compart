@@ -48,6 +48,13 @@ const text = (value: string) => new TextEncoder().encode(value);
 export const PROGRAM_ID = new PublicKey(
   "E2jBtfWynBhkA7yxXfNFPrhpKuEZwweuvb1GDNzkRDEh",
 );
+// Circle's official Solana devnet USDC. Rooms created by this release escrow
+// this SPL token; SOL remains only the wallet's network-fee currency.
+export const DEVNET_USDC_MINT = new PublicKey(
+  "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+);
+const TOKEN_PROGRAM_ID = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
+const ASSOCIATED_TOKEN_PROGRAM_ID = new PublicKey("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL");
 export const NETWORK: SolanaNetwork =
   import.meta.env.VITE_SOLANA_NETWORK === "mainnet-beta"
     ? "mainnet-beta"
@@ -78,6 +85,13 @@ const offerSeed = text("offer");
 const receiptSeed = text("receipt");
 const accessSeed = text("access");
 const inviteSeed = text("invite");
+
+function associatedTokenAddress(owner: PublicKey, mint: PublicKey): PublicKey {
+  return PublicKey.findProgramAddressSync(
+    [owner.toBytes(), TOKEN_PROGRAM_ID.toBytes(), mint.toBytes()],
+    ASSOCIATED_TOKEN_PROGRAM_ID,
+  )[0];
+}
 
 export const baseConnection = new Connection(BASE_RPC, "confirmed");
 
@@ -211,12 +225,17 @@ export async function createCampaign(
     [treasurySeed, campaign.toBytes()],
     PROGRAM_ID,
   );
+  const treasuryToken = associatedTokenAddress(treasury, DEVNET_USDC_MINT);
   const instruction = new TransactionInstruction({
     programId: PROGRAM_ID,
     keys: [
       { pubkey: creator, isSigner: true, isWritable: true },
       { pubkey: campaign, isSigner: false, isWritable: true },
       { pubkey: treasury, isSigner: false, isWritable: true },
+      { pubkey: DEVNET_USDC_MINT, isSigner: false, isWritable: false },
+      { pubkey: treasuryToken, isSigner: false, isWritable: true },
+      { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+      { pubkey: ASSOCIATED_TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ],
     data: instructionData(
@@ -228,6 +247,7 @@ export async function createCampaign(
       u64Le(input.minGoal),
       u64Le(input.maxGoal),
       u64Le(BigInt(input.deadline)),
+      DEVNET_USDC_MINT.toBytes(),
     ),
   });
   const signature = await sendWithWallet(
@@ -274,6 +294,8 @@ export type CampaignSnapshot = {
   clearingPrice: bigint;
   winningSupplier: string;
   allocatedQuantity: number;
+  paymentMint: string;
+  paymentDecimals: number;
 };
 
 export type SupplierOfferSnapshot = {
@@ -338,7 +360,7 @@ function publicKeyAt(data: Uint8Array, offset: number): string {
 }
 
 function decodeCampaign(address: PublicKey, data: Uint8Array): CampaignSnapshot {
-  if (data.length < 170) throw new Error("The campaign account has an unexpected layout.");
+  if (data.length < 203) throw new Error("This is an earlier SOL-only room. Create a new USDC room to use the upgraded settlement.");
   const view = accountView(data);
   const title = new TextDecoder()
     .decode(data.slice(48, 80))
@@ -361,6 +383,8 @@ function decodeCampaign(address: PublicKey, data: Uint8Array): CampaignSnapshot 
     clearingPrice: view.getBigUint64(122, true),
     winningSupplier: publicKeyAt(data, 130),
     allocatedQuantity: view.getUint32(164, true),
+    paymentMint: publicKeyAt(data, 170),
+    paymentDecimals: data[202],
   };
 }
 
@@ -485,7 +509,7 @@ export async function readOrganizerRoomAddresses(organizer: PublicKey): Promise<
   const accounts = await baseConnection.getProgramAccounts(PROGRAM_ID, {
     commitment: "confirmed",
     filters: [
-      { dataSize: 154 },
+      { dataSize: 203 },
       { memcmp: { offset: 8, bytes: organizer.toBase58() } },
     ],
   });
@@ -541,6 +565,8 @@ export async function createPrivateCommitment(
     [treasurySeed, campaignAddress.toBytes()],
     PROGRAM_ID,
   );
+  const buyerToken = associatedTokenAddress(buyer, DEVNET_USDC_MINT);
+  const treasuryToken = associatedTokenAddress(treasury, DEVNET_USDC_MINT);
   const [privateBudget] = PublicKey.findProgramAddressSync(
     [privateBudgetSeed, bid.toBytes()],
     PROGRAM_ID,
@@ -558,6 +584,10 @@ export async function createPrivateCommitment(
       { pubkey: access, isSigner: false, isWritable: false },
       { pubkey: bid, isSigner: false, isWritable: true },
       { pubkey: treasury, isSigner: false, isWritable: true },
+      { pubkey: DEVNET_USDC_MINT, isSigner: false, isWritable: false },
+      { pubkey: buyerToken, isSigner: false, isWritable: true },
+      { pubkey: treasuryToken, isSigner: false, isWritable: true },
+      { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ],
     data: instructionData(await discriminator("create_bid"), u16Le(quantity)),
@@ -872,6 +902,8 @@ export async function claimRefund(
     [treasurySeed, campaignAddress.toBytes()],
     PROGRAM_ID,
   );
+  const buyerToken = associatedTokenAddress(buyer, DEVNET_USDC_MINT);
+  const treasuryToken = associatedTokenAddress(treasury, DEVNET_USDC_MINT);
   const instruction = new TransactionInstruction({
     programId: PROGRAM_ID,
     keys: [
@@ -879,7 +911,10 @@ export async function claimRefund(
       { pubkey: campaignAddress, isSigner: false, isWritable: false },
       { pubkey: bid, isSigner: false, isWritable: true },
       { pubkey: treasury, isSigner: false, isWritable: true },
-      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+      { pubkey: DEVNET_USDC_MINT, isSigner: false, isWritable: false },
+      { pubkey: treasuryToken, isSigner: false, isWritable: true },
+      { pubkey: buyerToken, isSigner: false, isWritable: true },
+      { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
     ],
     data: instructionData(await discriminator("claim_refund")),
   });
@@ -999,14 +1034,22 @@ export async function settleReadyCampaign(
     [treasurySeed, campaignAddress.toBytes()],
     PROGRAM_ID,
   );
+  const treasuryToken = associatedTokenAddress(treasury, DEVNET_USDC_MINT);
+  // Compart is a private group fund: the selected outcome pays the organizer,
+  // never a legacy supplier address.
+  const organizerRecipient = new PublicKey(room.campaign.creator);
+  const organizerToken = associatedTokenAddress(organizerRecipient, DEVNET_USDC_MINT);
   const instruction = new TransactionInstruction({
     programId: PROGRAM_ID,
     keys: [
       { pubkey: wallet.publicKey, isSigner: true, isWritable: false },
       { pubkey: campaignAddress, isSigner: false, isWritable: true },
-      { pubkey: new PublicKey(room.campaign.winningSupplier), isSigner: false, isWritable: true },
+      { pubkey: organizerRecipient, isSigner: false, isWritable: true },
       { pubkey: treasury, isSigner: false, isWritable: true },
-      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+      { pubkey: DEVNET_USDC_MINT, isSigner: false, isWritable: false },
+      { pubkey: treasuryToken, isSigner: false, isWritable: true },
+      { pubkey: organizerToken, isSigner: false, isWritable: true },
+      { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
       ...bids.map((bid) => ({
         pubkey: new PublicKey(bid.address),
         isSigner: false,

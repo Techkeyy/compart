@@ -5,6 +5,8 @@
 
 use anchor_lang::prelude::*;
 use anchor_lang::system_program::{create_account, transfer, CreateAccount, Transfer};
+use anchor_spl::associated_token::AssociatedToken;
+use anchor_spl::token_interface::{self, Mint, TokenAccount, TokenInterface, TransferChecked};
 use ephemeral_rollups_sdk::{
     access_control::{
         instructions::{CreateEphemeralPermissionCpi, UpdateEphemeralPermissionCpi},
@@ -50,6 +52,7 @@ pub mod compartido_market {
         min_goal: u64,
         max_goal: u64,
         deadline: i64,
+        payment_mint: Pubkey,
     ) -> Result<()> {
         require!(target_quantity > 0, CompartidoError::InvalidQuantity);
         require!(deposit_cap > 0, CompartidoError::InvalidPrice);
@@ -85,6 +88,8 @@ pub mod compartido_market {
         campaign.allocated_quantity = 0;
         campaign.treasury_bump = ctx.bumps.treasury;
         campaign.bump = ctx.bumps.campaign;
+        campaign.payment_mint = payment_mint;
+        campaign.payment_decimals = ctx.accounts.payment_mint.decimals;
 
         if ctx.accounts.treasury.lamports() == 0 {
             let campaign_key = campaign.key();
@@ -231,15 +236,18 @@ pub mod compartido_market {
         require!(quantity > 0, CompartidoError::InvalidQuantity);
 
         let deposit = checked_cost(quantity, campaign.deposit_cap)?;
-        transfer(
+        token_interface::transfer_checked(
             CpiContext::new(
-                ctx.accounts.system_program.key(),
-                Transfer {
-                    from: ctx.accounts.buyer.to_account_info(),
-                    to: ctx.accounts.treasury.to_account_info(),
+                ctx.accounts.token_program.key(),
+                TransferChecked {
+                    from: ctx.accounts.buyer_token.to_account_info(),
+                    mint: ctx.accounts.payment_mint.to_account_info(),
+                    to: ctx.accounts.treasury_token.to_account_info(),
+                    authority: ctx.accounts.buyer.to_account_info(),
                 },
             ),
             deposit,
+            campaign.payment_decimals,
         )?;
 
         let bid_info = ctx.accounts.bid.to_account_info();
@@ -771,6 +779,13 @@ pub mod compartido_market {
             campaign.status == CampaignStatus::AllocationsComputed,
             CompartidoError::AllocationsNotComputed
         );
+        // Group-fund rooms always pay the organizer. Never allow a legacy
+        // supplier quote to redirect a campaign's escrow.
+        require_keys_eq!(
+            campaign.winning_supplier,
+            campaign.creator,
+            CompartidoError::WrongSupplier
+        );
         require_keys_eq!(
             ctx.accounts.supplier.key(),
             campaign.winning_supplier,
@@ -855,16 +870,19 @@ pub mod compartido_market {
                 campaign_key.as_ref(),
                 &[campaign.treasury_bump],
             ];
-            transfer(
+            token_interface::transfer_checked(
                 CpiContext::new_with_signer(
-                    ctx.accounts.system_program.key(),
-                    Transfer {
-                        from: ctx.accounts.treasury.to_account_info(),
-                        to: ctx.accounts.supplier.to_account_info(),
+                    ctx.accounts.token_program.key(),
+                    TransferChecked {
+                        from: ctx.accounts.treasury_token.to_account_info(),
+                        mint: ctx.accounts.payment_mint.to_account_info(),
+                        to: ctx.accounts.supplier_token.to_account_info(),
+                        authority: ctx.accounts.treasury.to_account_info(),
                     },
                     &[treasury_signer],
                 ),
                 payout,
+                campaign.payment_decimals,
             )?;
         }
 
@@ -904,16 +922,19 @@ pub mod compartido_market {
                 campaign_key.as_ref(),
                 &[campaign.treasury_bump],
             ];
-            transfer(
+            token_interface::transfer_checked(
                 CpiContext::new_with_signer(
-                    ctx.accounts.system_program.key(),
-                    Transfer {
-                        from: ctx.accounts.treasury.to_account_info(),
-                        to: ctx.accounts.buyer.to_account_info(),
+                    ctx.accounts.token_program.key(),
+                    TransferChecked {
+                        from: ctx.accounts.treasury_token.to_account_info(),
+                        mint: ctx.accounts.payment_mint.to_account_info(),
+                        to: ctx.accounts.buyer_token.to_account_info(),
+                        authority: ctx.accounts.treasury.to_account_info(),
                     },
                     &[treasury_signer],
                 ),
                 amount,
+                campaign.payment_decimals,
             )?;
         }
 
@@ -1061,6 +1082,16 @@ pub struct InitializeCampaign<'info> {
     /// CHECK: System-owned escrow PDA created by this instruction.
     #[account(mut, seeds = [TREASURY_SEED, campaign.key().as_ref()], bump)]
     pub treasury: UncheckedAccount<'info>,
+    pub payment_mint: InterfaceAccount<'info, Mint>,
+    #[account(
+        init_if_needed,
+        payer = creator,
+        associated_token::mint = payment_mint,
+        associated_token::authority = treasury,
+    )]
+    pub treasury_token: InterfaceAccount<'info, TokenAccount>,
+    pub token_program: Interface<'info, TokenInterface>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,
 }
 
@@ -1161,6 +1192,13 @@ pub struct CreateBid<'info> {
     /// CHECK: Verified by campaign-derived PDA seeds.
     #[account(mut, seeds = [TREASURY_SEED, campaign.key().as_ref()], bump = campaign.treasury_bump)]
     pub treasury: UncheckedAccount<'info>,
+    #[account(address = campaign.payment_mint)]
+    pub payment_mint: InterfaceAccount<'info, Mint>,
+    #[account(mut, token::mint = payment_mint, token::authority = buyer)]
+    pub buyer_token: InterfaceAccount<'info, TokenAccount>,
+    #[account(mut, token::mint = payment_mint, token::authority = treasury)]
+    pub treasury_token: InterfaceAccount<'info, TokenAccount>,
+    pub token_program: Interface<'info, TokenInterface>,
     pub system_program: Program<'info, System>,
 }
 
@@ -1409,7 +1447,13 @@ pub struct SettleCampaign<'info> {
     /// CHECK: Verified by campaign-derived PDA seeds.
     #[account(mut, seeds = [TREASURY_SEED, campaign.key().as_ref()], bump = campaign.treasury_bump)]
     pub treasury: UncheckedAccount<'info>,
-    pub system_program: Program<'info, System>,
+    #[account(address = campaign.payment_mint)]
+    pub payment_mint: InterfaceAccount<'info, Mint>,
+    #[account(mut, token::mint = payment_mint, token::authority = treasury)]
+    pub treasury_token: InterfaceAccount<'info, TokenAccount>,
+    #[account(mut, token::mint = payment_mint, token::authority = supplier)]
+    pub supplier_token: InterfaceAccount<'info, TokenAccount>,
+    pub token_program: Interface<'info, TokenInterface>,
 }
 
 #[derive(Accounts)]
@@ -1428,7 +1472,13 @@ pub struct ClaimRefund<'info> {
     /// CHECK: Verified by campaign-derived PDA seeds.
     #[account(mut, seeds = [TREASURY_SEED, campaign.key().as_ref()], bump = campaign.treasury_bump)]
     pub treasury: UncheckedAccount<'info>,
-    pub system_program: Program<'info, System>,
+    #[account(address = campaign.payment_mint)]
+    pub payment_mint: InterfaceAccount<'info, Mint>,
+    #[account(mut, token::mint = payment_mint, token::authority = treasury)]
+    pub treasury_token: InterfaceAccount<'info, TokenAccount>,
+    #[account(mut, token::mint = payment_mint, token::authority = buyer)]
+    pub buyer_token: InterfaceAccount<'info, TokenAccount>,
+    pub token_program: Interface<'info, TokenInterface>,
 }
 
 #[derive(Accounts)]
@@ -1476,11 +1526,13 @@ pub struct Campaign {
     pub allocated_quantity: u32,
     pub treasury_bump: u8,
     pub bump: u8,
+    pub payment_mint: Pubkey,
+    pub payment_decimals: u8,
 }
 
 impl Campaign {
     pub const SPACE: usize =
-        8 + 32 + 8 + 32 + 2 + 8 + 8 + 8 + 8 + 1 + 2 + 1 + 4 + 8 + 32 + 2 + 4 + 1 + 1;
+        8 + 32 + 8 + 32 + 2 + 8 + 8 + 8 + 8 + 1 + 2 + 1 + 4 + 8 + 32 + 2 + 4 + 1 + 1 + 32 + 1;
 }
 
 #[account]
