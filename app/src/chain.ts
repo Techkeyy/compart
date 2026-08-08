@@ -24,7 +24,7 @@ export type SolanaNetwork = "devnet" | "mainnet-beta";
 
 export type BrowserWallet = {
   publicKey?: PublicKey;
-  connect: () => Promise<{ publicKey: PublicKey }>;
+  connect: () => Promise<{ publicKey: PublicKey | string }>;
   disconnect?: () => Promise<void>;
   signTransaction: (transaction: Transaction) => Promise<Transaction>;
   signMessage: (
@@ -158,13 +158,20 @@ function walletSignature(
 }
 
 export async function connectBrowserWallet(): Promise<BrowserWallet> {
-  const provider = window.phantom?.solana || window.solflare || window.solana;
+  const provider = [window.phantom?.solana, window.solflare, window.solana]
+    .find((candidate) =>
+      candidate
+      && typeof candidate.connect === "function"
+      && typeof candidate.signTransaction === "function");
   if (!provider) {
     throw new Error("No Solana wallet found. Install Phantom or Solflare to continue.");
   }
   const response = await provider.connect();
-  const publicKey = response.publicKey || provider.publicKey;
-  if (!publicKey) throw new Error("The wallet connected without returning an account.");
+  const returnedPublicKey = response?.publicKey || provider.publicKey;
+  if (!returnedPublicKey) throw new Error("The wallet connected without returning an account.");
+  const publicKey = returnedPublicKey instanceof PublicKey
+    ? returnedPublicKey
+    : new PublicKey(returnedPublicKey.toString());
 
   // Injected providers expose publicKey as a read-only getter. Return a bound
   // adapter instead of assigning to the provider, which breaks Phantom after
@@ -174,7 +181,9 @@ export async function connectBrowserWallet(): Promise<BrowserWallet> {
     connect: provider.connect.bind(provider),
     disconnect: provider.disconnect?.bind(provider),
     signTransaction: provider.signTransaction.bind(provider),
-    signMessage: provider.signMessage.bind(provider),
+    signMessage: typeof provider.signMessage === "function"
+      ? provider.signMessage.bind(provider)
+      : async () => { throw new Error("This wallet cannot sign the private authentication message. Use Phantom or Solflare."); },
   };
   activeWalletProvider = provider;
   return wallet;

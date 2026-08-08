@@ -238,8 +238,8 @@ function FlowSteps({ steps, activeIndex, error }: { steps: Array<{ label: string
   return <ol className="flow-steps">{steps.map((step, index) => <li className={index < activeIndex ? "complete" : index === activeIndex ? error ? "error" : "active" : ""} key={step.label}><span>{index < activeIndex ? <CheckIcon size={14} /> : index + 1}</span><div><strong>{step.label}</strong>{step.detail && <small>{step.detail}</small>}</div></li>)}</ol>;
 }
 
-function AppHeader({ view, connected, walletAddress, networkName, onNavigate, onWallet }: { view: AppView; connected: boolean; walletAddress: string; networkName: string; onNavigate: (view: AppView) => void; onWallet: () => void }) {
-  return <header className="app-header app-shell"><Brand /><nav aria-label="Application navigation"><button className={view === "lobby" ? "active" : ""} onClick={() => onNavigate("lobby")}><HomeIcon size={15} /> My rooms</button><button className={view === "history" ? "active" : ""} onClick={() => onNavigate("history")}><ReceiptIcon size={15} /> Activity</button><button className="header-create" onClick={() => onNavigate("create")}><PlusIcon size={15} /> Create room</button></nav><div className="app-header-actions"><span className="app-network"><i />{networkName}</span><button className="app-wallet" onClick={onWallet}><WalletIcon size={15} />{connected ? shortAddress(walletAddress) : "Connect wallet"}</button></div></header>;
+function AppHeader({ view, connected, connecting, walletAddress, networkName, onNavigate, onWallet }: { view: AppView; connected: boolean; connecting: boolean; walletAddress: string; networkName: string; onNavigate: (view: AppView) => void; onWallet: () => void }) {
+  return <header className="app-header app-shell"><Brand /><nav aria-label="Application navigation"><button className={view === "lobby" ? "active" : ""} onClick={() => onNavigate("lobby")}><HomeIcon size={15} /> My rooms</button><button className={view === "history" ? "active" : ""} onClick={() => onNavigate("history")}><ReceiptIcon size={15} /> Activity</button><button className="header-create" onClick={() => onNavigate("create")}><PlusIcon size={15} /> Create room</button></nav><div className="app-header-actions"><span className="app-network"><i />{networkName}</span><button className="app-wallet" disabled={connecting} onClick={onWallet}><WalletIcon size={15} />{connecting ? "Opening wallet…" : connected ? shortAddress(walletAddress) : "Connect wallet"}</button></div></header>;
 }
 
 function DevnetWalletChecklist({ connected, usdcBalance }: { connected: boolean; usdcBalance: number | null }) {
@@ -258,6 +258,8 @@ export default function LiveApp() {
   const [selectedAddress, setSelectedAddress] = useState(roomFromUrl || "");
   const [wallet, setWallet] = useState<BrowserWallet | null>(null);
   const [walletAddress, setWalletAddress] = useState("");
+  const [walletState, setWalletState] = useState<SubmitState>("idle");
+  const [walletNotice, setWalletNotice] = useState("");
   const [devnetUsdcBalance, setDevnetUsdcBalance] = useState<number | null>(null);
   const [programState, setProgramState] = useState<"checking" | "ready" | "unreachable">("checking");
   const [campaign, setCampaign] = useState<CampaignSnapshot | null>(null);
@@ -410,13 +412,20 @@ export default function LiveApp() {
   }, [loadPersonalRooms, view]);
 
   async function connectWallet(): Promise<BrowserWallet | null> {
+    setWalletState("working");
+    setWalletNotice("Opening your Solana wallet…");
     try {
       const nextWallet = await connectBrowserWallet();
       setWallet(nextWallet);
       setWalletAddress(nextWallet.publicKey?.toBase58() || "");
+      setWalletState("done");
+      setWalletNotice(`Wallet connected: ${shortAddress(nextWallet.publicKey?.toBase58() || "")}`);
       return nextWallet;
     } catch (error) {
-      setCommitNotice(error instanceof Error ? error.message : "Wallet connection failed.");
+      const message = error instanceof Error ? error.message : "Wallet connection failed.";
+      setWalletState("error");
+      setWalletNotice(message);
+      setCommitNotice(message);
       return null;
     }
   }
@@ -427,6 +436,8 @@ export default function LiveApp() {
       setWallet(null);
       setWalletAddress("");
       setPosition(null);
+      setWalletState("idle");
+      setWalletNotice("Wallet disconnected.");
       return;
     }
     await connectWallet();
@@ -700,7 +711,8 @@ export default function LiveApp() {
   const activePersonalRooms = personalRooms.filter((room) => room.status === "open" || room.status === "offer-selected" || room.status === "allocations-computed");
 
   return <main className="product-app">
-    <AppHeader view={view} connected={connected} walletAddress={walletAddress} networkName={networkName} onNavigate={navigate} onWallet={toggleWallet} />
+    <AppHeader view={view} connected={connected} connecting={walletState === "working"} walletAddress={walletAddress} networkName={networkName} onNavigate={navigate} onWallet={toggleWallet} />
+    {walletNotice && <div className={`wallet-notice ${walletState}`} role={walletState === "error" ? "alert" : "status"} aria-live="polite"><span>{walletNotice}</span>{walletState === "error" && walletNotice.startsWith("No Solana wallet found") && <a href="https://phantom.com/download" target="_blank" rel="noreferrer">Install Phantom ↗</a>}<button aria-label="Dismiss wallet message" onClick={() => setWalletNotice("")}>×</button></div>}
 
     {view === "lobby" && <div className="app-shell app-page lobby-page">
       <section className="lobby-hero"><div><span className="app-kicker"><SparkIcon size={15} /> PRIVATE GROUP PURCHASING</span><h1>What are you planning <em>together?</em></h1><p>Create an unlisted purchase room, or open an invitation from your group. Nobody needs to front the full bill or announce their budget.</p><div className="lobby-actions"><button className="app-primary" onClick={() => navigate("create")}><PlusIcon /> Create a room</button><button className="app-secondary" onClick={() => document.getElementById("join-room")?.focus()}><KeyIcon /> Open invitation</button></div></div><div className="lobby-system"><small>VERIFIED DEVNET SYSTEM</small><strong className={programState}>{programState === "ready" ? "Program live" : programState === "checking" ? "Checking program" : "Network unavailable"}</strong><ul><li><CheckIcon size={14} /> Real Solana rooms</li><li><CheckIcon size={14} /> MagicBlock Private ER</li><li><CheckIcon size={14} /> Outcome-only settlement</li></ul></div></section>

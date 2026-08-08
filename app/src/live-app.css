@@ -144,3 +144,14 @@
   .lobby-hero { width: 100%; min-width: 0; }
   .lobby-hero h1 { max-width: 100%; overflow-wrap: anywhere; font-size: clamp(40px, 12vw, 49px); }
 }
+
+.app-wallet:disabled { cursor: wait; opacity: .7; }
+.wallet-notice { width: min(1220px, calc(100% - 48px)); display: flex; align-items: center; gap: 12px; margin: 10px auto 0; padding: 11px 14px; border: 1px solid #c7ded2; border-radius: 12px; color: #295f4b; background: #edf8f2; font-size: 13px; }
+.wallet-notice.error { border-color: #efc6bd; color: #963e30; background: #fff0ec; }
+.wallet-notice span { flex: 1; }
+.wallet-notice a { color: inherit; font-weight: 850; }
+.wallet-notice button { border: 0; padding: 2px 5px; color: inherit; background: transparent; cursor: pointer; font-size: 20px !important; line-height: 1 !important; }
+
+@media (max-width: 680px) {
+  .wallet-notice { width: calc(100% - 24px); align-items: flex-start; }
+}

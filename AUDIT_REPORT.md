@@ -16,6 +16,7 @@ The repository is clean enough for a hackathon demo and the corrected program is
 5. **Generic product copy still leaked accommodation assumptions.** Active form labels, plan types, dates, terms, cards, and demo text now describe group purchasing broadly rather than one hardcoded stay.
 6. **Documentation and automation had drifted.** The root and app READMEs now describe Circle devnet USDC, private rooms, current roles, refunds, and limitations. Historical supplier-era runners and proof files are explicitly archived. A CI workflow now builds the frontend and runs Rust formatting, tests, and strict Clippy checks.
 7. **Cancelled-room UI implied a manual claim.** The result screen now states that full deposits were returned automatically by the organizer's cancellation transaction.
+8. **Wallet connection failures were invisible in the lobby.** Provider detection now validates an injected Solana wallet, normalizes its returned public key, and shows connecting, success, cancellation, missing-extension, or provider errors directly beneath the app header.
 
 ## Verified
 
@@ -28,6 +29,7 @@ The repository is clean enough for a hackathon demo and the corrected program is
 - Frontend production dependency audit: no high or critical advisories; 2 low and 4 moderate transitive advisories remain in the Solana/MagicBlock dependency graph. The automated forced fixes propose incompatible downgrades and were not applied.
 - Secret-pattern and repository-hygiene scans found no committed wallet keypair or environment secret. Keypair and environment patterns remain ignored.
 - Desktop landing page and mobile live-app lobby were visually inspected. At Chrome's true 500 px headless viewport, the page had no horizontal overflow and all primary controls were readable.
+- The wallet button was browser-tested with a simulated Phantom-compatible injected provider; it changed to the connected address and displayed confirmation. The missing-provider path displayed an accessible error and Phantom installation link.
 - Anchor generated the current JSON and TypeScript IDLs, including `prepare_cancellation`.
 - Audited program artifact SHA-256: `e44d4f16a95139df00853abe2dd180dc43f944d375aeb3dc973a85c44a1daa9e`.
 - Existing devnet program upgraded successfully: `E2jBtfWynBhkA7yxXfNFPrhpKuEZwweuvb1GDNzkRDEh`.
