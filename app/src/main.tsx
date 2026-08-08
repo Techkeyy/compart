@@ -113,6 +113,7 @@ function LiveApp() {
   const [hostNotice, setHostNotice] = useState("");
   const [hostSignature, setHostSignature] = useState("");
   const [settlementState, setSettlementState] = useState<"idle" | "sending" | "done" | "error">("idle");
+  const [inviteState, setInviteState] = useState<"idle" | "copied" | "error">("idle");
   const [now, setNow] = useState(() => Math.floor(Date.now() / 1000));
 
   const connected = Boolean(walletAddress);
@@ -184,6 +185,7 @@ function LiveApp() {
     remaining % 60,
   ].map((part) => String(part).padStart(2, "0")).join(":");
   const progressPercent = Math.min(100, Math.round((memberCount / targetQuantity) * 100));
+  const budgetPercent = Math.round(((maxBudget - 80) / (220 - 80)) * 100);
   const members = useMemo(
     () => campaign
       ? Array.from({ length: Math.min(campaign.bidCount, 8) }, (_, index) => ({
@@ -267,7 +269,24 @@ function LiveApp() {
     }
   }
 
+  async function copyInvite() {
+    const inviteUrl = new URL(window.location.href);
+    inviteUrl.hash = "app";
+    try {
+      await navigator.clipboard.writeText(inviteUrl.toString());
+      setInviteState("copied");
+    } catch {
+      setInviteState("error");
+    }
+  }
+
   async function submitHostQuote() {
+    if (!Number.isFinite(hostPrice) || hostPrice <= 0) {
+      setHostState("error");
+      setHostNotice("Enter a valid per-person quote above zero.");
+      return;
+    }
+
     if (!liveCampaign) {
       setHostState("done");
       setHostNotice("Preview mode — the quote was not sent and no funds moved.");
@@ -327,6 +346,7 @@ function LiveApp() {
           <span>compart</span>
         </a>
         <div className="top-actions">
+          <a className="overview-link" href="#home">Overview</a>
           <span className={`network ${programState}`} title={`Program ${PROGRAM_ID.toBase58()}`}>
             <span /> {networkName}
           </span>
@@ -370,7 +390,9 @@ function LiveApp() {
                 <h2>{campaign?.title || "Solana Festival House"}</h2>
                 <p>Alfama, Lisbon · September 18–21</p>
               </div>
-              <button className="share-button" aria-label="Copy invitation link">Invite ↗</button>
+              <button className="share-button" aria-live="polite" onClick={copyInvite}>
+                {inviteState === "copied" ? "Link copied ✓" : inviteState === "error" ? "Copy failed" : "Invite ↗"}
+              </button>
             </div>
 
             <div className="room-stats">
@@ -404,12 +426,12 @@ function LiveApp() {
             </div>
 
             <div className="tabs" role="tablist" aria-label="Room activity">
-              <button className={panel === "group" ? "active" : ""} onClick={() => setPanel("group")}>Group</button>
-              <button className={panel === "hosts" ? "active" : ""} onClick={() => setPanel("hosts")}>Host quotes <span>{quotes.length}</span></button>
+              <button aria-selected={panel === "group"} className={panel === "group" ? "active" : ""} onClick={() => setPanel("group")} role="tab">Group</button>
+              <button aria-selected={panel === "hosts"} className={panel === "hosts" ? "active" : ""} onClick={() => setPanel("hosts")} role="tab">Host quotes <span>{quotes.length}</span></button>
             </div>
 
             {panel === "group" ? (
-              <div className="activity-list">
+              <div className="activity-list" role="tabpanel">
                 {members.slice().reverse().map((member, index) => (
                   <div className="activity" key={member.name}>
                     <span className={`avatar small ${member.tone}`}>{member.initials}</span>
@@ -419,7 +441,7 @@ function LiveApp() {
                 ))}
               </div>
             ) : (
-              <div className="quote-list">
+              <div className="quote-list" role="tabpanel">
                 {quotes.length === 0 && (
                   <p className="empty-quotes">No host quotes yet. Be the first to price the whole group.</p>
                 )}
@@ -536,6 +558,7 @@ function LiveApp() {
                 max="220"
                 step="5"
                 value={maxBudget}
+                style={{ "--budget-fill": `${budgetPercent}%` } as React.CSSProperties}
                 onChange={(event) => setMaxBudget(Number(event.target.value))}
               />
               <div className="range-labels"><span>€80</span><span>€220</span></div>
@@ -550,11 +573,17 @@ function LiveApp() {
                 <span className="refundable">Fully refundable</span>
               </div>
 
-              <button className="primary-button" onClick={commitBudget}>
+              <button
+                className="primary-button"
+                disabled={commitState === "signing" || commitState === "private"}
+                onClick={commitBudget}
+              >
                 {liveCampaign && !connected
                   ? "Connect to continue"
                   : commitState === "signing"
                     ? "Securing deposit…"
+                    : commitState === "private"
+                      ? "Protecting limit…"
                     : liveCampaign
                       ? "Commit privately"
                       : "Preview private commitment"} <ArrowIcon />
@@ -601,7 +630,11 @@ function LandingPage() {
         <nav className="landing-links" aria-label="Main navigation">
           <a href="#how-it-works">How it works</a>
           <a href="#docs">Docs</a>
-          <a className="landing-nav-cta" href="#app">Enter live app <ArrowIcon size={15} /></a>
+          <a className="landing-nav-cta" href="#app">
+            <span className="nav-cta-full">Enter live app</span>
+            <span className="nav-cta-short">Open app</span>
+            <ArrowIcon size={15} />
+          </a>
         </nav>
       </header>
 

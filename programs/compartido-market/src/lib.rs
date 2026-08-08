@@ -1,3 +1,8 @@
+// Anchor's generated Solana entrypoint currently triggers host-only cfg and
+// diverging-expression diagnostics. Keep strict linting for project code while
+// containing those upstream macro expansions at the crate boundary.
+#![allow(unexpected_cfgs, clippy::diverging_sub_expression)]
+
 use anchor_lang::prelude::*;
 use anchor_lang::system_program::{create_account, transfer, CreateAccount, Transfer};
 use ephemeral_rollups_sdk::{

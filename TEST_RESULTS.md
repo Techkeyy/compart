@@ -97,10 +97,30 @@ settlement, refund, and receipt signature as finalized with no error. See
 - Local frontend preview returns HTTP 200 at `http://127.0.0.1:4173` while the
   preview server is running.
 
-The frontend build reports a non-blocking large-chunk warning. Its installed
-dependency tree also reports two low and four moderate advisories in transitive
-packages; no forced dependency rewrite has been applied because that could break
-the official SDK integration during the hackathon.
+The frontend build is split into app, React, Solana, and MagicBlock delivery
+chunks and completes without a bundle-size warning. Its installed dependency tree
+reports two low and four moderate advisories in transitive packages; no forced
+dependency rewrite has been applied because that could break the official SDK
+integration during the hackathon.
+
+## Repository audit — passed (August 8, 2026)
+
+- `cargo fmt --all -- --check` passes.
+- `cargo clippy -p compartido-market --lib -- -D warnings` passes. Two diagnostics
+  produced inside Anchor's generated host entrypoint are contained at the crate
+  boundary; project-authored warnings remain fatal.
+- All three Rust allocation/privacy unit tests pass.
+- Every JavaScript lifecycle and utility file passes `node --check`.
+- TypeScript checking and the Vite production build pass.
+- Desktop and 390 px mobile renders of both the overview and live room were
+  inspected after the UI cleanup.
+- Root lifecycle dependencies are now declared and locked in `package.json` and
+  `package-lock.json`, so the documented test commands no longer depend on an
+  undeclared parent installation.
+- Production dependency audits report no high or critical advisories. The app has
+  two low and four moderate transitive advisories; the scripts have five moderate
+  advisories. npm's proposed forced fixes require incompatible downgrades of the
+  official MagicBlock/Solana stack, so they were not applied.
 
 ## Hosted network status
 

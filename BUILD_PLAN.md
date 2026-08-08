@@ -80,7 +80,7 @@ Compart crosses the requirements as follows:
 | Requirement or judging signal | Compart evidence |
 | --- | --- |
 | Collaboration | Several participants jointly determine whether one booking becomes possible. |
-| Ephemeral Rollup integration | The live commitment room and quote state update through a public ER. |
+| Ephemeral Rollup integration | Participant bid accounts are delegated to MagicBlock's hosted TEE; authenticated private writes and allocation computation execute there. |
 | Private ER integration | Each participant's maximum budget is isolated inside a permissioned private account. |
 | Meaningful use of MagicBlock | Privacy prevents social pressure and price discrimination; real-time updates make the room feel live; neither is decorative. |
 | Solana integration | Deposits, final payment, refunds, and booking receipts settle on Solana. |
@@ -137,7 +137,7 @@ Submission evidence required:
 ### Not yet complete
 
 - Mainnet program deployment and minimal proof transaction.
-- Inventory-backed booking voucher or clearly labeled prototype receipt.
+- Inventory-backed booking integration (the clearly labeled prototype receipt is complete).
 - Recorded demo.
 
 ## Implemented correctness rules
@@ -146,7 +146,7 @@ Submission evidence required:
 
 The program uses two accounts:
 
-- `Commitment` on Solana/public ER: participant, fixed deposit, requested quantity,
+- `Commitment` on Solana: participant, fixed deposit, requested quantity,
   allocation, charge, refund, and status.
 - `PrivateBudget` created as an ephemeral-only account in the Private ER: participant,
   room, maximum unit price, and any private preferences.
@@ -194,24 +194,17 @@ Solana base layer
 ├── Room configuration
 ├── Fixed-cap participant commitments
 ├── Treasury / escrow
+├── Supplier quotes and public room progress
 ├── Final charges and refunds
 └── Booking receipts
 
-Public Ephemeral Rollup
-└── LiveRoom
-    ├── participant count
-    ├── committed quantity
-    ├── required group size
-    ├── host quotes
-    ├── deadline
-    └── public status
-
 Private Ephemeral Rollup / TEE
-└── PrivateBudget per participant
-    ├── participant
-    ├── maximum unit price
-    ├── private preferences if used
-    └── permission metadata
+├── Delegated participant bid account
+├── PrivateBudget per participant
+│   ├── participant
+│   ├── maximum unit price
+│   └── permission metadata
+└── Outcome-only allocation computation
 ```
 
 ## 24-hour execution plan

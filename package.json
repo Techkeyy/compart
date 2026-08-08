@@ -1,0 +1,23 @@
+{
+  "name": "compart",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Private group purchasing on Solana with MagicBlock Private Ephemeral Rollups",
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "scripts": {
+    "build": "npm --prefix app run build",
+    "test:unit": "cargo test -p compartido-market --lib",
+    "test:local": "node tests/local-lifecycle.js",
+    "test:private-local": "node tests/private-er-lifecycle.js",
+    "test:hosted": "node tests/hosted-devnet-lifecycle.js",
+    "verify": "npm run test:unit && npm run build"
+  },
+  "devDependencies": {
+    "@coral-xyz/anchor": "0.32.1",
+    "@magicblock-labs/ephemeral-rollups-sdk": "0.14.3",
+    "@solana/web3.js": "1.98.4",
+    "tweetnacl": "1.0.3"
+  }
+}
