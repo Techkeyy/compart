@@ -477,7 +477,14 @@ export default function LiveApp() {
     const invite = url.searchParams.get("invite");
     const secret = url.searchParams.get("claim");
     if (!invite || !secret) return;
-    await claimRoomAccess(activeWallet, invite, secret, selectedAddress);
+    try {
+      await claimRoomAccess(activeWallet, invite, secret, selectedAddress);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      // A prior attempt may have claimed the link before its following action
+      // failed. The wallet already has access, so continue instead of trapping it.
+      if (!message.includes("InviteAlreadyClaimed") && !message.includes("0x1776")) throw error;
+    }
     url.searchParams.delete("invite");
     url.searchParams.delete("claim");
     window.history.replaceState({}, "", url);
