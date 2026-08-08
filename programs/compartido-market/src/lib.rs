@@ -47,10 +47,20 @@ pub mod compartido_market {
         title: [u8; 32],
         target_quantity: u16,
         deposit_cap: u64,
+        min_goal: u64,
+        max_goal: u64,
         deadline: i64,
     ) -> Result<()> {
         require!(target_quantity > 0, CompartidoError::InvalidQuantity);
         require!(deposit_cap > 0, CompartidoError::InvalidPrice);
+        require!(
+            min_goal > 0 && min_goal <= max_goal,
+            CompartidoError::InvalidGoalRange
+        );
+        require!(
+            max_goal <= checked_cost(target_quantity, deposit_cap)?,
+            CompartidoError::EscrowInvariant
+        );
         require!(
             deadline > Clock::get()?.unix_timestamp,
             CompartidoError::InvalidDeadline
@@ -62,6 +72,8 @@ pub mod compartido_market {
         campaign.title = title;
         campaign.target_quantity = target_quantity;
         campaign.deposit_cap = deposit_cap;
+        campaign.min_goal = min_goal;
+        campaign.max_goal = max_goal;
         campaign.deadline = deadline;
         campaign.status = CampaignStatus::Open;
         campaign.bid_count = 0;
@@ -100,6 +112,39 @@ pub mod compartido_market {
             deposit_cap,
             deadline,
         });
+        Ok(())
+    }
+
+    /// Locks a final group target inside the organizer-approved goal band. The
+    /// existing private matcher then checks which invited members can cover the
+    /// equal per-person share without exposing their ceilings.
+    pub fn select_goal(ctx: Context<SelectGoal>, final_goal: u64) -> Result<()> {
+        let campaign = &mut ctx.accounts.campaign;
+        require!(
+            campaign.status == CampaignStatus::Open,
+            CompartidoError::CampaignNotOpen
+        );
+        require!(
+            Clock::get()?.unix_timestamp >= campaign.deadline,
+            CompartidoError::DeadlineNotReached
+        );
+        require!(
+            final_goal >= campaign.min_goal && final_goal <= campaign.max_goal,
+            CompartidoError::GoalOutsideRange
+        );
+        require!(
+            final_goal % u64::from(campaign.target_quantity) == 0,
+            CompartidoError::GoalMustSplitEvenly
+        );
+        let per_person = final_goal / u64::from(campaign.target_quantity);
+        require!(
+            per_person > 0 && per_person <= campaign.deposit_cap,
+            CompartidoError::EscrowInvariant
+        );
+        campaign.clearing_price = per_person;
+        campaign.winning_supplier = campaign.creator;
+        campaign.available_quantity = campaign.target_quantity;
+        campaign.status = CampaignStatus::OfferSelected;
         Ok(())
     }
 
@@ -1041,6 +1086,14 @@ pub struct GrantRoomAccess<'info> {
 }
 
 #[derive(Accounts)]
+pub struct SelectGoal<'info> {
+    #[account(mut)]
+    pub creator: Signer<'info>,
+    #[account(mut, constraint = campaign.creator == creator.key() @ CompartidoError::WrongCreator)]
+    pub campaign: Account<'info, Campaign>,
+}
+
+#[derive(Accounts)]
 #[instruction(nonce: u64)]
 pub struct CreateClaimableInvite<'info> {
     #[account(mut)]
@@ -1410,6 +1463,8 @@ pub struct Campaign {
     pub target_quantity: u16,
     /// Public per-unit escrow ceiling shared by every participant.
     pub deposit_cap: u64,
+    pub min_goal: u64,
+    pub max_goal: u64,
     pub deadline: i64,
     pub status: CampaignStatus,
     pub bid_count: u16,
@@ -1424,7 +1479,8 @@ pub struct Campaign {
 }
 
 impl Campaign {
-    pub const SPACE: usize = 8 + 32 + 8 + 32 + 2 + 8 + 8 + 1 + 2 + 1 + 4 + 8 + 32 + 2 + 4 + 1 + 1;
+    pub const SPACE: usize =
+        8 + 32 + 8 + 32 + 2 + 8 + 8 + 8 + 8 + 1 + 2 + 1 + 4 + 8 + 32 + 2 + 4 + 1 + 1;
 }
 
 #[account]
@@ -1597,6 +1653,12 @@ pub enum CompartidoError {
     InvalidQuantity,
     #[msg("Price must be greater than zero")]
     InvalidPrice,
+    #[msg("Choose a valid minimum and maximum group goal")]
+    InvalidGoalRange,
+    #[msg("The selected amount is outside the approved goal range")]
+    GoalOutsideRange,
+    #[msg("Choose a goal that splits evenly across the required group")]
+    GoalMustSplitEvenly,
     #[msg("Choose a participant or supplier access role")]
     InvalidAccessRole,
     #[msg("This wallet has not been invited as a participant")]

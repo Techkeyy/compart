@@ -193,6 +193,12 @@ export async function createCampaign(
     throw new Error("Choose a group size between 2 and 25.");
   }
   if (input.depositCap < 1n) throw new Error("Enter a valid public deposit.");
+  if (input.minGoal < 1n || input.minGoal > input.maxGoal) {
+    throw new Error("Set a valid minimum and maximum group goal.");
+  }
+  if (input.maxGoal > BigInt(input.targetQuantity) * input.depositCap) {
+    throw new Error("The maximum goal cannot exceed the group's public escrow capacity.");
+  }
   if (!Number.isInteger(input.deadline) || input.deadline <= Math.floor(Date.now() / 1000)) {
     throw new Error("Choose a deadline in the future.");
   }
@@ -219,6 +225,8 @@ export async function createCampaign(
       fixedText32(input.title),
       u16Le(input.targetQuantity),
       u64Le(input.depositCap),
+      u64Le(input.minGoal),
+      u64Le(input.maxGoal),
       u64Le(BigInt(input.deadline)),
     ),
   });
@@ -256,6 +264,8 @@ export type CampaignSnapshot = {
   title: string;
   targetQuantity: number;
   depositCap: bigint;
+  minGoal: bigint;
+  maxGoal: bigint;
   deadline: number;
   status: "open" | "offer-selected" | "allocations-computed" | "settled" | "cancelled";
   bidCount: number;
@@ -306,6 +316,8 @@ export type CreateCampaignInput = {
   title: string;
   targetQuantity: number;
   depositCap: bigint;
+  minGoal: bigint;
+  maxGoal: bigint;
   deadline: number;
 };
 
@@ -326,7 +338,7 @@ function publicKeyAt(data: Uint8Array, offset: number): string {
 }
 
 function decodeCampaign(address: PublicKey, data: Uint8Array): CampaignSnapshot {
-  if (data.length < 154) throw new Error("The campaign account has an unexpected layout.");
+  if (data.length < 170) throw new Error("The campaign account has an unexpected layout.");
   const view = accountView(data);
   const title = new TextDecoder()
     .decode(data.slice(48, 80))
@@ -339,14 +351,16 @@ function decodeCampaign(address: PublicKey, data: Uint8Array): CampaignSnapshot 
     title,
     targetQuantity: view.getUint16(80, true),
     depositCap: view.getBigUint64(82, true),
-    deadline: Number(view.getBigInt64(90, true)),
-    status: campaignStatuses[data[98]] || "open",
-    bidCount: view.getUint16(99, true),
-    offerCount: data[101],
-    totalRequested: view.getUint32(102, true),
-    clearingPrice: view.getBigUint64(106, true),
-    winningSupplier: publicKeyAt(data, 114),
-    allocatedQuantity: view.getUint32(148, true),
+    minGoal: view.getBigUint64(90, true),
+    maxGoal: view.getBigUint64(98, true),
+    deadline: Number(view.getBigInt64(106, true)),
+    status: campaignStatuses[data[114]] || "open",
+    bidCount: view.getUint16(115, true),
+    offerCount: data[117],
+    totalRequested: view.getUint32(118, true),
+    clearingPrice: view.getBigUint64(122, true),
+    winningSupplier: publicKeyAt(data, 130),
+    allocatedQuantity: view.getUint32(164, true),
   };
 }
 
@@ -911,6 +925,24 @@ export type OrganizerProgress =
   | "settling"
   | "complete";
 
+export async function selectGoal(
+  wallet: BrowserWallet,
+  goal: bigint,
+  selectedCampaign: PublicKey | string,
+): Promise<string> {
+  if (!wallet.publicKey) throw new Error("Connect the organizer wallet first.");
+  const campaignAddress = resolveCampaignAddress(selectedCampaign);
+  if (!campaignAddress) throw new Error("Choose a room first.");
+  return sendWithWallet(baseConnection, wallet, new Transaction().add(new TransactionInstruction({
+    programId: PROGRAM_ID,
+    keys: [
+      { pubkey: wallet.publicKey, isSigner: true, isWritable: true },
+      { pubkey: campaignAddress, isSigner: false, isWritable: true },
+    ],
+    data: instructionData(await discriminator("select_goal"), u64Le(goal)),
+  })));
+}
+
 export async function selectWinningOffer(
   wallet: BrowserWallet,
   selectedCampaign: PublicKey | string,
@@ -989,6 +1021,7 @@ export async function settleReadyCampaign(
 export async function runOrganizerSettlement(
   wallet: BrowserWallet,
   selectedCampaign: PublicKey | string,
+  finalGoal: bigint,
   onProgress?: (step: OrganizerProgress) => void,
 ): Promise<{ signatures: string[]; finalStatus: "settled" | "cancelled" }> {
   if (!wallet.publicKey) throw new Error("Connect the organizer wallet first.");
@@ -1009,7 +1042,7 @@ export async function runOrganizerSettlement(
   const signatures: string[] = [];
   if (room.campaign.status === "open") {
     onProgress?.("selecting-offer");
-    signatures.push(await selectWinningOffer(wallet, campaignAddress));
+    signatures.push(await selectGoal(wallet, finalGoal, campaignAddress));
     room = await readCampaignRoom(campaignAddress);
     if (!room) throw new Error("The selected quote could not be reloaded.");
   }

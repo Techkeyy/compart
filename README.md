@@ -4,9 +4,9 @@
 
 [Open the overview](https://techkeyy.github.io/compart/) · [Enter the live app](https://techkeyy.github.io/compart/#app) · [View the hosted proof](HOSTED_DEVNET_PROOF.md) · [Read the architecture](ARCHITECTURE.md)
 
-Compart lets a group make one conditional purchase without asking everyone to reveal what they can afford. Each person commits the same public deposit and privately sets a maximum. A deal-option publisher quotes for the whole group. The purchase clears only when enough private limits can support one quote; otherwise participants can reclaim their deposits.
+Compart is a private group fund for a shared plan. An organizer sets a minimum viable goal, a maximum approved goal, and a deadline. Everyone—including the organizer if they choose—privately states what they can cover behind the same public escrow cap. The plan proceeds only when enough private commitments can cover a final amount inside the agreed goal range; otherwise participants can reclaim their deposits.
 
-The live product starts with a private-room lobby rather than a fixed demo or a public marketplace. An organizer creates an unlisted room and shares a participant or deal-option invitation; a new visitor can create a room or open an invitation, but cannot browse other people’s rooms. Participant, deal-option, and organizer actions are presented in separate workspaces. Every room shows its lifecycle, transaction progress, public terms, privacy boundary, final outcome, and available receipts.
+The live product starts with a private-room lobby rather than a fixed demo or a public marketplace. An organizer creates an unlisted room and shares one-time participant invitations; a new visitor can create a room or open an invitation, but cannot browse other people’s rooms. Participant and organizer actions are separated. Every room shows its lifecycle, transaction progress, public terms, privacy boundary, final outcome, and available receipts.
 
 All live amount fields are denominated in devnet SOL. Compart does not imply a fiat-dollar or USDC exchange rate.
 

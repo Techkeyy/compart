@@ -1398,6 +1398,14 @@ export type CompartidoMarket = {
           "type": "u64"
         },
         {
+          "name": "minGoal",
+          "type": "u64"
+        },
+        {
+          "name": "maxGoal",
+          "type": "u64"
+        },
+        {
           "name": "deadline",
           "type": "i64"
         }
@@ -1698,6 +1706,41 @@ export type CompartidoMarket = {
           "type": {
             "vec": "bytes"
           }
+        }
+      ]
+    },
+    {
+      "name": "selectGoal",
+      "docs": [
+        "Locks a final group target inside the organizer-approved goal band. The",
+        "existing private matcher then checks which invited members can cover the",
+        "equal per-person share without exposing their ceilings."
+      ],
+      "discriminator": [
+        180,
+        214,
+        165,
+        192,
+        98,
+        38,
+        141,
+        57
+      ],
+      "accounts": [
+        {
+          "name": "creator",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "campaign",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "finalGoal",
+          "type": "u64"
         }
       ]
     },
@@ -2355,191 +2398,206 @@ export type CompartidoMarket = {
     },
     {
       "code": 6003,
+      "name": "invalidGoalRange",
+      "msg": "Choose a valid minimum and maximum group goal"
+    },
+    {
+      "code": 6004,
+      "name": "goalOutsideRange",
+      "msg": "The selected amount is outside the approved goal range"
+    },
+    {
+      "code": 6005,
+      "name": "goalMustSplitEvenly",
+      "msg": "Choose a goal that splits evenly across the required group"
+    },
+    {
+      "code": 6006,
       "name": "invalidAccessRole",
       "msg": "Choose a participant or supplier access role"
     },
     {
-      "code": 6004,
+      "code": 6007,
       "name": "participantAccessRequired",
       "msg": "This wallet has not been invited as a participant"
     },
     {
-      "code": 6005,
+      "code": 6008,
       "name": "supplierAccessRequired",
       "msg": "This wallet has not been invited as a supplier"
     },
     {
-      "code": 6006,
+      "code": 6009,
       "name": "inviteAlreadyClaimed",
       "msg": "This invite link has already been claimed"
     },
     {
-      "code": 6007,
+      "code": 6010,
       "name": "invalidInviteSecret",
       "msg": "This invite link is invalid"
     },
     {
-      "code": 6008,
+      "code": 6011,
       "name": "campaignNotOpen",
       "msg": "The campaign is not open"
     },
     {
-      "code": 6009,
+      "code": 6012,
       "name": "campaignClosed",
       "msg": "The campaign is closed"
     },
     {
-      "code": 6010,
+      "code": 6013,
       "name": "deadlineNotReached",
       "msg": "The campaign deadline has not been reached"
     },
     {
-      "code": 6011,
+      "code": 6014,
       "name": "bidLimitReached",
       "msg": "The maximum number of demo bids has been reached"
     },
     {
-      "code": 6012,
+      "code": 6015,
       "name": "offerLimitReached",
       "msg": "The maximum number of demo offers has been reached"
     },
     {
-      "code": 6013,
+      "code": 6016,
       "name": "insufficientSupply",
       "msg": "Supplier quantity does not meet the campaign target"
     },
     {
-      "code": 6014,
+      "code": 6017,
       "name": "noOffers",
       "msg": "No supplier offers were posted"
     },
     {
-      "code": 6015,
+      "code": 6018,
       "name": "incompleteOfferSet",
       "msg": "Every supplier offer must be included"
     },
     {
-      "code": 6016,
+      "code": 6019,
       "name": "incompleteBidSet",
       "msg": "Every buyer bid must be included"
     },
     {
-      "code": 6017,
+      "code": 6020,
       "name": "incompletePrivateBudgetSet",
       "msg": "Every public commitment and private budget pair must be included"
     },
     {
-      "code": 6018,
+      "code": 6021,
       "name": "invalidAccountOwner",
       "msg": "An account belongs to another program"
     },
     {
-      "code": 6019,
+      "code": 6022,
       "name": "invalidOfferAccount",
       "msg": "The account is not a valid supplier offer"
     },
     {
-      "code": 6020,
+      "code": 6023,
       "name": "invalidBidAccount",
       "msg": "The account is not a valid bid"
     },
     {
-      "code": 6021,
+      "code": 6024,
       "name": "invalidPrivateBudgetAccount",
       "msg": "The account is not a valid private budget"
     },
     {
-      "code": 6022,
+      "code": 6025,
       "name": "wrongCampaign",
       "msg": "The account belongs to another campaign"
     },
     {
-      "code": 6023,
+      "code": 6026,
       "name": "wrongCommitment",
       "msg": "The private budget belongs to another commitment"
     },
     {
-      "code": 6024,
+      "code": 6027,
       "name": "wrongBuyer",
       "msg": "The private budget belongs to another buyer"
     },
     {
-      "code": 6025,
+      "code": 6028,
       "name": "wrongCreator",
       "msg": "The campaign creator is required"
     },
     {
-      "code": 6026,
+      "code": 6029,
       "name": "duplicateAccount",
       "msg": "Duplicate participant account"
     },
     {
-      "code": 6027,
+      "code": 6030,
       "name": "inactiveOffer",
       "msg": "The supplier offer is inactive"
     },
     {
-      "code": 6028,
+      "code": 6031,
       "name": "offerNotSelected",
       "msg": "A winning offer has not been selected"
     },
     {
-      "code": 6029,
+      "code": 6032,
       "name": "wrongSupplier",
       "msg": "The supplied payout account is not the winning supplier"
     },
     {
-      "code": 6030,
+      "code": 6033,
       "name": "bidAlreadySettled",
       "msg": "The bid was already settled"
     },
     {
-      "code": 6031,
+      "code": 6034,
       "name": "allocationsAlreadyComputed",
       "msg": "Private allocations have already been computed"
     },
     {
-      "code": 6032,
+      "code": 6035,
       "name": "allocationsNotComputed",
       "msg": "Private allocations have not been computed"
     },
     {
-      "code": 6033,
+      "code": 6036,
       "name": "accountMustBeWritable",
       "msg": "The remaining bid account must be writable"
     },
     {
-      "code": 6034,
+      "code": 6037,
       "name": "escrowInvariant",
       "msg": "Escrow accounting invariant failed"
     },
     {
-      "code": 6035,
+      "code": 6038,
       "name": "campaignNotSettled",
       "msg": "The campaign is not settled"
     },
     {
-      "code": 6036,
+      "code": 6039,
       "name": "bidNotSettled",
       "msg": "The bid is not settled"
     },
     {
-      "code": 6037,
+      "code": 6040,
       "name": "refundAlreadyClaimed",
       "msg": "The refund was already claimed"
     },
     {
-      "code": 6038,
+      "code": 6041,
       "name": "noAllocation",
       "msg": "This bid received no allocation"
     },
     {
-      "code": 6039,
+      "code": 6042,
       "name": "receiptAlreadyClaimed",
       "msg": "The access receipt was already claimed"
     },
     {
-      "code": 6040,
+      "code": 6043,
       "name": "mathOverflow",
       "msg": "Arithmetic overflow"
     }
@@ -2728,6 +2786,14 @@ export type CompartidoMarket = {
             "docs": [
               "Public per-unit escrow ceiling shared by every participant."
             ],
+            "type": "u64"
+          },
+          {
+            "name": "minGoal",
+            "type": "u64"
+          },
+          {
+            "name": "maxGoal",
             "type": "u64"
           },
           {
