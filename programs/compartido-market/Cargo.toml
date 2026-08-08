@@ -1,0 +1,24 @@
+[package]
+name = "compartido-market"
+version = "0.1.0"
+description = "Private collaborative demand market built for MagicBlock Solana Blitz v7"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "compartido_market"
+
+[features]
+default = []
+cpi = ["no-entrypoint"]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+idl-build = ["anchor-lang/idl-build"]
+custom-heap = []
+custom-panic = []
+anchor-debug = []
+
+[dependencies]
+anchor-lang = { version = "1.0.2", features = ["init-if-needed"] }
+ephemeral-rollups-sdk = { version = "0.16.2", features = ["anchor", "access-control"] }
