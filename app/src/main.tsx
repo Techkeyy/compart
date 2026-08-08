@@ -618,8 +618,9 @@ function LandingPage() {
             <a className="landing-secondary" href="#how-it-works">See how it works <span>↓</span></a>
           </div>
           <div className="landing-trust-row">
-            <span><i /> Live on Solana devnet</span>
-            <span><LockIcon size={14} /> Private budgets by MagicBlock</span>
+            <span>+ PRIVATE LIMITS</span>
+            <span>+ FAIR CLEARING</span>
+            <span>+ REFUNDS IF IT DOESN’T CLEAR</span>
           </div>
         </div>
 
@@ -629,19 +630,11 @@ function LandingPage() {
             src={`${import.meta.env.BASE_URL}compart-collaboration.jpg`}
             alt="A group making a shared decision around a table"
           />
-          <div className="orb orb-one" /><div className="orb orb-two" />
-          <div className="landing-room-card">
-            <div className="landing-room-bar"><span><i /> LIVE ROOM</span><span>Sep 18–21</span></div>
-            <div className="landing-room-image"><span>Solana Festival House</span></div>
-            <div className="landing-room-body">
-              <div className="landing-room-title"><strong>4 of 6 friends are in</strong><span>67%</span></div>
-              <div className="landing-room-progress"><i /></div>
-              <div className="landing-room-meta"><span>€180 public deposit</span><span className="private-chip"><LockIcon size={13} /> Limits private</span></div>
-            </div>
-          </div>
-          <div className="floating-note floating-note-one"><span className="mini-avatar mint">JL</span><div><strong>Jon joined</strong><small>Budget stays private</small></div></div>
-          <div className="floating-note floating-note-two"><span className="mini-check"><CheckIcon size={13} /></span><div><strong>Fair price found</strong><small>€142 per person</small></div></div>
+          <div className="hero-corner-mark" aria-hidden="true"><i /><i /><i /><i /></div>
+          <div className="hero-image-caption"><span><i /> LIVE ROOM</span><strong>Solana Festival House</strong></div>
         </div>
+
+        <div className="hero-frame-pips" aria-hidden="true"><i /><i /><i /><i /></div>
       </section>
 
       <section className="landing-statement shell">
