@@ -183,6 +183,103 @@ export type CompartidoMarket = {
       "args": []
     },
     {
+      "name": "claimRoomAccess",
+      "docs": [
+        "The wallet that proves knowledge of a one-time link secret receives its",
+        "role onchain. The secret is never persisted, only its hash."
+      ],
+      "discriminator": [
+        8,
+        111,
+        147,
+        192,
+        156,
+        63,
+        125,
+        241
+      ],
+      "accounts": [
+        {
+          "name": "member",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "campaign"
+        },
+        {
+          "name": "invite",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  105,
+                  110,
+                  118,
+                  105,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "campaign"
+              },
+              {
+                "kind": "account",
+                "path": "invite.nonce",
+                "account": "claimableInvite"
+              }
+            ]
+          }
+        },
+        {
+          "name": "access",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  99,
+                  99,
+                  101,
+                  115,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "campaign"
+              },
+              {
+                "kind": "account",
+                "path": "member"
+              }
+            ]
+          }
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "secret",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
       "name": "computeAllocations",
       "docs": [
         "Computes allocations inside the Private ER. Remaining accounts must be",
@@ -351,6 +448,83 @@ export type CompartidoMarket = {
         {
           "name": "quantity",
           "type": "u16"
+        }
+      ]
+    },
+    {
+      "name": "createClaimableInvite",
+      "docs": [
+        "Creates a one-time capability link. The recipient's wallet is deliberately",
+        "unknown here: it is bound only when the recipient claims the secret."
+      ],
+      "discriminator": [
+        39,
+        183,
+        41,
+        130,
+        177,
+        188,
+        101,
+        191
+      ],
+      "accounts": [
+        {
+          "name": "creator",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "campaign"
+        },
+        {
+          "name": "invite",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  105,
+                  110,
+                  118,
+                  105,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "campaign"
+              },
+              {
+                "kind": "arg",
+                "path": "nonce"
+              }
+            ]
+          }
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "nonce",
+          "type": "u64"
+        },
+        {
+          "name": "permissions",
+          "type": "u8"
+        },
+        {
+          "name": "secretHash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
         }
       ]
     },
@@ -2005,6 +2179,19 @@ export type CompartidoMarket = {
       ]
     },
     {
+      "name": "claimableInvite",
+      "discriminator": [
+        39,
+        208,
+        82,
+        179,
+        49,
+        131,
+        141,
+        146
+      ]
+    },
+    {
       "name": "privateBudget",
       "discriminator": [
         177,
@@ -2183,166 +2370,176 @@ export type CompartidoMarket = {
     },
     {
       "code": 6006,
+      "name": "inviteAlreadyClaimed",
+      "msg": "This invite link has already been claimed"
+    },
+    {
+      "code": 6007,
+      "name": "invalidInviteSecret",
+      "msg": "This invite link is invalid"
+    },
+    {
+      "code": 6008,
       "name": "campaignNotOpen",
       "msg": "The campaign is not open"
     },
     {
-      "code": 6007,
+      "code": 6009,
       "name": "campaignClosed",
       "msg": "The campaign is closed"
     },
     {
-      "code": 6008,
+      "code": 6010,
       "name": "deadlineNotReached",
       "msg": "The campaign deadline has not been reached"
     },
     {
-      "code": 6009,
+      "code": 6011,
       "name": "bidLimitReached",
       "msg": "The maximum number of demo bids has been reached"
     },
     {
-      "code": 6010,
+      "code": 6012,
       "name": "offerLimitReached",
       "msg": "The maximum number of demo offers has been reached"
     },
     {
-      "code": 6011,
+      "code": 6013,
       "name": "insufficientSupply",
       "msg": "Supplier quantity does not meet the campaign target"
     },
     {
-      "code": 6012,
+      "code": 6014,
       "name": "noOffers",
       "msg": "No supplier offers were posted"
     },
     {
-      "code": 6013,
+      "code": 6015,
       "name": "incompleteOfferSet",
       "msg": "Every supplier offer must be included"
     },
     {
-      "code": 6014,
+      "code": 6016,
       "name": "incompleteBidSet",
       "msg": "Every buyer bid must be included"
     },
     {
-      "code": 6015,
+      "code": 6017,
       "name": "incompletePrivateBudgetSet",
       "msg": "Every public commitment and private budget pair must be included"
     },
     {
-      "code": 6016,
+      "code": 6018,
       "name": "invalidAccountOwner",
       "msg": "An account belongs to another program"
     },
     {
-      "code": 6017,
+      "code": 6019,
       "name": "invalidOfferAccount",
       "msg": "The account is not a valid supplier offer"
     },
     {
-      "code": 6018,
+      "code": 6020,
       "name": "invalidBidAccount",
       "msg": "The account is not a valid bid"
     },
     {
-      "code": 6019,
+      "code": 6021,
       "name": "invalidPrivateBudgetAccount",
       "msg": "The account is not a valid private budget"
     },
     {
-      "code": 6020,
+      "code": 6022,
       "name": "wrongCampaign",
       "msg": "The account belongs to another campaign"
     },
     {
-      "code": 6021,
+      "code": 6023,
       "name": "wrongCommitment",
       "msg": "The private budget belongs to another commitment"
     },
     {
-      "code": 6022,
+      "code": 6024,
       "name": "wrongBuyer",
       "msg": "The private budget belongs to another buyer"
     },
     {
-      "code": 6023,
+      "code": 6025,
       "name": "wrongCreator",
       "msg": "The campaign creator is required"
     },
     {
-      "code": 6024,
+      "code": 6026,
       "name": "duplicateAccount",
       "msg": "Duplicate participant account"
     },
     {
-      "code": 6025,
+      "code": 6027,
       "name": "inactiveOffer",
       "msg": "The supplier offer is inactive"
     },
     {
-      "code": 6026,
+      "code": 6028,
       "name": "offerNotSelected",
       "msg": "A winning offer has not been selected"
     },
     {
-      "code": 6027,
+      "code": 6029,
       "name": "wrongSupplier",
       "msg": "The supplied payout account is not the winning supplier"
     },
     {
-      "code": 6028,
+      "code": 6030,
       "name": "bidAlreadySettled",
       "msg": "The bid was already settled"
     },
     {
-      "code": 6029,
+      "code": 6031,
       "name": "allocationsAlreadyComputed",
       "msg": "Private allocations have already been computed"
     },
     {
-      "code": 6030,
+      "code": 6032,
       "name": "allocationsNotComputed",
       "msg": "Private allocations have not been computed"
     },
     {
-      "code": 6031,
+      "code": 6033,
       "name": "accountMustBeWritable",
       "msg": "The remaining bid account must be writable"
     },
     {
-      "code": 6032,
+      "code": 6034,
       "name": "escrowInvariant",
       "msg": "Escrow accounting invariant failed"
     },
     {
-      "code": 6033,
+      "code": 6035,
       "name": "campaignNotSettled",
       "msg": "The campaign is not settled"
     },
     {
-      "code": 6034,
+      "code": 6036,
       "name": "bidNotSettled",
       "msg": "The bid is not settled"
     },
     {
-      "code": 6035,
+      "code": 6037,
       "name": "refundAlreadyClaimed",
       "msg": "The refund was already claimed"
     },
     {
-      "code": 6036,
+      "code": 6038,
       "name": "noAllocation",
       "msg": "This bid received no allocation"
     },
     {
-      "code": 6037,
+      "code": 6039,
       "name": "receiptAlreadyClaimed",
       "msg": "The access receipt was already claimed"
     },
     {
-      "code": 6038,
+      "code": 6040,
       "name": "mathOverflow",
       "msg": "Arithmetic overflow"
     }
@@ -2659,6 +2856,43 @@ export type CompartidoMarket = {
           },
           {
             "name": "cancelled"
+          }
+        ]
+      }
+    },
+    {
+      "name": "claimableInvite",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "campaign",
+            "type": "pubkey"
+          },
+          {
+            "name": "permissions",
+            "type": "u8"
+          },
+          {
+            "name": "secretHash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "nonce",
+            "type": "u64"
+          },
+          {
+            "name": "claimed",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
           }
         ]
       }

@@ -12,11 +12,12 @@ import {
   type SupplierOfferSnapshot,
   claimPrototypeReceipt,
   claimRefund,
+  claimRoomAccess,
   connectBrowserWallet,
   createCampaign,
+  createClaimableInvite,
   createPrivateCommitment,
   disconnectBrowserWallet,
-  grantRoomAccess,
   inspectProgram,
   normalizeCampaignAddress,
   postSupplierOffer,
@@ -249,7 +250,6 @@ export default function LiveApp() {
   const [joinNotice, setJoinNotice] = useState("");
   const [now, setNow] = useState(() => Math.floor(Date.now() / 1000));
   const [inviteState, setInviteState] = useState<"idle" | "copied" | "error">("idle");
-  const [accessWallet, setAccessWallet] = useState("");
   const [accessRole, setAccessRole] = useState<"participant" | "host">("participant");
   const [accessState, setAccessState] = useState<SubmitState>("idle");
   const [accessNotice, setAccessNotice] = useState("");
@@ -443,34 +443,44 @@ export default function LiveApp() {
   }
 
   async function copyInvite(target: "participant" | "host" = "participant") {
-    if (!selectedAddress) return;
-    const url = new URL(window.location.href);
-    url.searchParams.set("room", selectedAddress);
-    url.searchParams.set("role", target);
-    if (selectedMeta) url.searchParams.set("details", encodeMetadata(selectedMeta));
-    url.hash = "app";
-    try {
-      await navigator.clipboard.writeText(url.toString());
-      setInviteState("copied");
-    } catch {
+    if (!selectedAddress || !wallet?.publicKey || !isOrganizer) {
       setInviteState("error");
+      setAccessNotice("Connect the organizer wallet to create a claim link.");
+      return;
     }
-  }
-
-  async function grantAccessAndCopyInvite() {
-    if (!selectedAddress || !wallet?.publicKey || !isOrganizer) return;
+    setInviteState("idle");
     setAccessState("working");
     setAccessNotice("");
     try {
-      await grantRoomAccess(wallet, accessWallet, accessRole, selectedAddress);
-      await copyInvite(accessRole);
+      const created = await createClaimableInvite(wallet, target, selectedAddress);
+      const url = new URL(window.location.href);
+      url.searchParams.set("room", selectedAddress);
+      url.searchParams.set("role", target);
+      url.searchParams.set("invite", created.invite);
+      url.searchParams.set("claim", created.secret);
+      if (selectedMeta) url.searchParams.set("details", encodeMetadata(selectedMeta));
+      url.hash = "app";
+      await navigator.clipboard.writeText(url.toString());
+      setInviteState("copied");
       setAccessState("done");
-      setAccessNotice(`${accessRole === "participant" ? "Participant" : "Supplier"} access granted on Solana. The invitation is copied.`);
-      setAccessWallet("");
+      setAccessNotice(`One-time ${target === "participant" ? "participant" : "supplier"} link created and copied.`);
     } catch (error) {
+      setInviteState("error");
       setAccessState("error");
-      setAccessNotice(error instanceof Error ? error.message : "The invitation could not be granted.");
+      setAccessNotice(error instanceof Error ? error.message : "The claim link could not be created.");
     }
+  }
+
+  async function claimInviteIfPresent(activeWallet: BrowserWallet) {
+    if (!selectedAddress) return;
+    const url = new URL(window.location.href);
+    const invite = url.searchParams.get("invite");
+    const secret = url.searchParams.get("claim");
+    if (!invite || !secret) return;
+    await claimRoomAccess(activeWallet, invite, secret, selectedAddress);
+    url.searchParams.delete("invite");
+    url.searchParams.delete("claim");
+    window.history.replaceState({}, "", url);
   }
 
   async function submitCreateRoom(event: React.FormEvent) {
@@ -525,6 +535,7 @@ export default function LiveApp() {
       let activeWallet = wallet;
       if (!activeWallet?.publicKey) activeWallet = await connectWallet();
       if (!activeWallet?.publicKey) throw new Error("Connect a wallet to continue.");
+      await claimInviteIfPresent(activeWallet);
       const result = await createPrivateCommitment(
         activeWallet,
         BigInt(Math.round(maxBudget * LAMPORTS_PER_SOL)),
@@ -551,6 +562,7 @@ export default function LiveApp() {
       let activeWallet = wallet;
       if (!activeWallet?.publicKey) activeWallet = await connectWallet();
       if (!activeWallet?.publicKey) throw new Error("Connect a supplier wallet to continue.");
+      await claimInviteIfPresent(activeWallet);
       const signature = await postSupplierOffer(activeWallet, hostQuantity, BigInt(Math.round(hostPrice * LAMPORTS_PER_SOL)), selectedAddress);
       setHostSignature(signature);
       setHostState("done");
@@ -622,6 +634,7 @@ export default function LiveApp() {
 
       <section className="entry-grid"><article className="entry-card create-entry"><span className="entry-icon"><PlusIcon /></span><small>FOR ORGANIZERS</small><h2>Start a purchase room</h2><p>Choose the group size, dates, equal deposit, deadline and public terms. Compart creates an unlisted room and gives you invitations to share.</p><button onClick={() => navigate("create")}>Configure room <ArrowIcon size={16} /></button></article><article className="entry-card join-entry"><span className="entry-icon"><KeyIcon /></span><small>HAVE AN INVITATION?</small><h2>Open your private room</h2><p>Paste the complete participant or supplier invitation you received. We verify the underlying room before opening it.</p><label><span>Invitation link</span><div><input id="join-room" value={joinCode} onChange={(event) => setJoinCode(event.target.value)} placeholder="Paste invitation link" /><button onClick={joinRoom} disabled={joinState === "working"}>{joinState === "working" ? "Checking…" : "Open"}</button></div></label>{joinNotice && <p className="entry-notice error">{joinNotice}</p>}</article></section>
 
+      <section className="getting-started"><div><span className="app-kicker">FIRST TIME ON DEVNET?</span><h2>Start in three small steps.</h2><p>Compart uses free devnet SOL for prototype transactions. It is not real money and does not book real accommodation.</p><a className="faucet-link" href="https://faucet.solana.com" target="_blank" rel="noreferrer">Get free devnet SOL ↗</a></div><ol><li><span>01</span><div><strong>Connect your wallet</strong><p>Use Phantom or Solflare and switch it to Solana Devnet.</p></div></li><li><span>02</span><div><strong>Create or open a room</strong><p>Organizers create a room. Invitees open the one-time link they received.</p></div></li><li><span>03</span><div><strong>Claim your role, then act</strong><p>Your first commitment or quote claims the link to your connected wallet.</p></div></li></ol></section>
       <section className="directory-section private-directory"><div className="app-section-heading"><div><span className="app-kicker">YOUR PRIVATE ACTIVITY</span><h2>Your rooms</h2></div>{connected && <button className="text-button" onClick={() => void loadPersonalRooms()}>Refresh your rooms ↻</button>}</div>{!connected && <div className="empty-panel"><WalletIcon size={24} /><h3>Your rooms stay out of public view</h3><p>Connect the wallet you used to create or join a room to see only its rooms and receipts.</p><button className="app-secondary" onClick={toggleWallet}>Connect wallet</button></div>}{connected && historyState === "loading" && <div className="directory-loading">Looking up rooms connected to this wallet…</div>}{connected && historyState === "error" && <div className="empty-panel"><HomeIcon size={24} /><h3>We couldn’t load your rooms</h3><p>Refresh to try again. Other people’s rooms are never shown here.</p></div>}{connected && historyState === "ready" && personalRooms.length === 0 && <div className="empty-panel"><HomeIcon size={24} /><h3>No rooms for this wallet yet</h3><p>Create a room or open an invitation someone shared with you.</p></div>}{connected && <div className="room-grid">{personalRooms.map((room) => { const meta = metadataFor(room); return <article className="room-card" key={room.address}><div className={`room-art tone-${room.address.charCodeAt(0) % 3}`}><span>{meta.propertyType}</span><BuildingIcon size={54} /></div><div className="room-card-body"><div className="room-card-status"><span className={`status-dot ${room.status}`} />{statusLabel(room.status)}</div><h3>{room.title}</h3><p>{meta.location}</p><div className="room-card-meta"><span><UsersIcon size={14} /> {room.totalRequested}/{room.targetQuantity}</span><span><CalendarIcon size={14} /> {formatDeadline(room.deadline)}</span></div><button onClick={() => openRoom(room.address)}>Open room <ArrowIcon size={15} /></button></div></article>; })}</div>}</section>
       <PrivacyProof />
     </div>}
@@ -654,7 +667,7 @@ export default function LiveApp() {
           <div className="host-layout"><form onSubmit={(event) => { event.preventDefault(); void submitHostQuote(); }}><label><span>Host or property name</span><input required value={hostName} onChange={(event) => setHostName(event.target.value)} placeholder="Enter the public supplier name" /></label><div className="field-grid"><label><span>Available places</span><input type="number" min={campaign.targetQuantity} value={hostQuantity} onChange={(event) => setHostQuantity(Number(event.target.value))} /></label><label><span>Price per person (SOL)</span><input type="number" min="0.001" step="0.001" value={hostPrice || ""} placeholder="Enter a price" onChange={(event) => setHostPrice(Number(event.target.value))} /></label></div><label><span>Prototype inventory and cancellation terms</span><textarea required rows={3} value={hostTerms} placeholder="Describe the inventory and cancellation terms" onChange={(event) => setHostTerms(event.target.value)} /></label><div className="quote-summary"><span><small>GROUP VALUE</small><strong>{hostPrice > 0 ? `SOL ${hostPrice * campaign.targetQuantity}` : "—"}</strong></span><span><small>PUBLIC QUOTE</small><strong>{hostPrice > 0 ? `SOL ${hostPrice} × ${campaign.targetQuantity}` : "—"}</strong></span></div><button className="app-primary wide" type="submit" disabled={hostState === "working" || activeQuoteByWallet || campaign.status !== "open"}>{activeQuoteByWallet ? "This wallet already quoted" : hostState === "working" ? "Publishing quote…" : connected ? "Publish group quote" : "Connect and quote"} <ArrowIcon /></button>{hostNotice && <p className={`submit-notice ${hostState}`}>{hostNotice}</p>}{hostSignature && <a className="transaction-link" href={explorerPath("tx", hostSignature)} target="_blank" rel="noreferrer">View quote transaction ↗</a>}</form><div className="quote-board"><div><span className="app-kicker">PUBLIC QUOTE BOARD</span><strong>{offers.length} active {offers.length === 1 ? "offer" : "offers"}</strong></div>{offers.length === 0 && <div className="empty-panel compact"><BuildingIcon size={22} /><h3>No host quote yet</h3><p>The first complete-group offer will appear here.</p></div>}{offers.map((offer, index) => <article className={index === 0 ? "best" : ""} key={offer.address}><span className="quote-rank">{index + 1}</span><div><strong>{shortAddress(offer.supplier)}</strong><small>{offer.quantity} places · Public Solana offer</small></div>{index === 0 && <span className="best-badge">Best price</span>}<div><strong>SOL {displayAmount(offer.unitPrice)}</strong><small>per person</small></div></article>)}</div></div>
         </div>}
 
-        {role === "organizer" && <div className="organizer-panel"><div className="role-panel-heading"><div><span className="role-icon organizer"><ShieldIcon /></span><div><small>ORGANIZER CONTROL ROOM</small><h2>Close, match privately and settle publicly.</h2></div></div><span className={`role-badge ${isOrganizer ? "verified" : ""}`}>{isOrganizer ? "Organizer wallet verified" : "Read-only organizer view"}</span></div><div className="organizer-kpis"><article><small>COMMITMENTS</small><strong>{campaign.bidCount}</strong><span>{campaign.totalRequested}/{campaign.targetQuantity} quantity</span></article><article><small>HOST QUOTES</small><strong>{offers.length}</strong><span>{offers.length ? `Best public quote SOL ${displayAmount(offers[0].unitPrice)}` : "Waiting for supply"}</span></article><article><small>DEADLINE</small><strong>{deadlineReached ? "Reached" : "Open"}</strong><span>{formatDeadline(campaign.deadline)}</span></article><article><small>ROOM STATUS</small><strong>{statusLabel(campaign.status)}</strong><span>{shortAddress(campaign.address)}</span></article></div><div className="organizer-layout"><div className="settlement-console"><span className="app-kicker">SETTLEMENT RUN</span><h3>One guided, verifiable sequence</h3><FlowSteps activeIndex={organizerState === "done" ? ORGANIZER_STEPS.length : organizerStepIndex} error={organizerState === "error"} steps={ORGANIZER_STEPS.map((step) => ({ label: step.label }))} />{!isOrganizer && <div className="organizer-warning"><WalletIcon /><p>Connect <strong>{shortAddress(campaign.creator)}</strong>, the wallet that created this room, to enable settlement.</p></div>}{isOrganizer && !deadlineReached && <div className="organizer-warning"><CalendarIcon /><p>Matching unlocks when the commitment deadline is reached. Until then, send the participant and supplier invitations.</p></div>}<button className="app-primary wide" onClick={settleRoom} disabled={!isOrganizer || !deadlineReached || !offers.length || organizerState === "working" || campaign.status === "settled" || campaign.status === "cancelled"}>{organizerState === "working" ? "Running verified settlement…" : campaign.status === "settled" || campaign.status === "cancelled" ? "Room already complete" : "Close, match and settle"} <ArrowIcon /></button>{organizerNotice && <p className={`submit-notice ${organizerState}`}>{organizerNotice}</p>}{organizerSignatures.length > 0 && <a className="transaction-link" href={explorerPath("tx", organizerSignatures.at(-1)!)} target="_blank" rel="noreferrer">View final settlement transaction ↗</a>}</div><div className="organizer-actions"><span className="app-kicker">PRIVATE INVITATIONS</span><form className="access-grant" onSubmit={(event) => { event.preventDefault(); void grantAccessAndCopyInvite(); }}><label><span>Invitee wallet address</span><input required value={accessWallet} onChange={(event) => setAccessWallet(event.target.value)} placeholder="Paste the recipient wallet address" /></label><label><span>Invite role</span><select value={accessRole} onChange={(event) => setAccessRole(event.target.value as "participant" | "host")}><option value="participant">Participant</option><option value="host">Supplier</option></select></label><button type="submit" disabled={accessState === "working" || !isOrganizer}>{accessState === "working" ? "Granting access…" : "Grant access and copy invite"}</button></form>{accessNotice && <p className={`submit-notice ${accessState}`}>{accessNotice}</p>}<button onClick={() => void copyInvite("participant")}><CopyIcon /><span><strong>{inviteState === "copied" ? "Invite copied" : "Copy participant invite"}</strong><small>Share with the people joining the group</small></span></button><button onClick={() => void copyInvite("host")}><BuildingIcon /><span><strong>{inviteState === "copied" ? "Invite copied" : "Copy supplier invite"}</strong><small>Share with accommodation hosts you select</small></span></button><a href={explorerPath("address", campaign.address)} target="_blank" rel="noreferrer"><ShieldIcon /><span><strong>Inspect public settlement state</strong><small>Campaign, progress and final outcome on Explorer</small></span></a><a href="https://github.com/Techkeyy/compart/blob/main/DEMO_SCRIPT.md" target="_blank" rel="noreferrer"><ReceiptIcon /><span><strong>Open organizer runbook</strong><small>Verified demo and recovery sequence</small></span></a></div></div></div>}
+        {role === "organizer" && <div className="organizer-panel"><div className="role-panel-heading"><div><span className="role-icon organizer"><ShieldIcon /></span><div><small>ORGANIZER CONTROL ROOM</small><h2>Close, match privately and settle publicly.</h2></div></div><span className={`role-badge ${isOrganizer ? "verified" : ""}`}>{isOrganizer ? "Organizer wallet verified" : "Read-only organizer view"}</span></div><div className="organizer-kpis"><article><small>COMMITMENTS</small><strong>{campaign.bidCount}</strong><span>{campaign.totalRequested}/{campaign.targetQuantity} quantity</span></article><article><small>HOST QUOTES</small><strong>{offers.length}</strong><span>{offers.length ? `Best public quote SOL ${displayAmount(offers[0].unitPrice)}` : "Waiting for supply"}</span></article><article><small>DEADLINE</small><strong>{deadlineReached ? "Reached" : "Open"}</strong><span>{formatDeadline(campaign.deadline)}</span></article><article><small>ROOM STATUS</small><strong>{statusLabel(campaign.status)}</strong><span>{shortAddress(campaign.address)}</span></article></div><div className="organizer-layout"><div className="settlement-console"><span className="app-kicker">SETTLEMENT RUN</span><h3>One guided, verifiable sequence</h3><FlowSteps activeIndex={organizerState === "done" ? ORGANIZER_STEPS.length : organizerStepIndex} error={organizerState === "error"} steps={ORGANIZER_STEPS.map((step) => ({ label: step.label }))} />{!isOrganizer && <div className="organizer-warning"><WalletIcon /><p>Connect <strong>{shortAddress(campaign.creator)}</strong>, the wallet that created this room, to enable settlement.</p></div>}{isOrganizer && !deadlineReached && <div className="organizer-warning"><CalendarIcon /><p>Matching unlocks when the commitment deadline is reached. Until then, send the participant and supplier invitations.</p></div>}<button className="app-primary wide" onClick={settleRoom} disabled={!isOrganizer || !deadlineReached || !offers.length || organizerState === "working" || campaign.status === "settled" || campaign.status === "cancelled"}>{organizerState === "working" ? "Running verified settlement…" : campaign.status === "settled" || campaign.status === "cancelled" ? "Room already complete" : "Close, match and settle"} <ArrowIcon /></button>{organizerNotice && <p className={`submit-notice ${organizerState}`}>{organizerNotice}</p>}{organizerSignatures.length > 0 && <a className="transaction-link" href={explorerPath("tx", organizerSignatures.at(-1)!)} target="_blank" rel="noreferrer">View final settlement transaction ↗</a>}</div><div className="organizer-actions"><span className="app-kicker">PRIVATE INVITATIONS</span><div className="access-grant"><span>One-time claim links</span><p>Create a role-bound link. The recipient connects their own wallet and claims it once.</p><label><span>Invite role</span><select value={accessRole} onChange={(event) => setAccessRole(event.target.value as "participant" | "host")}><option value="participant">Participant</option><option value="host">Supplier</option></select></label><button type="button" disabled={accessState === "working" || !isOrganizer} onClick={() => void copyInvite(accessRole)}>{accessState === "working" ? "Creating secure link…" : "Create and copy claim link"}</button></div>{accessNotice && <p className={`submit-notice ${accessState}`}>{accessNotice}</p>}<button onClick={() => void copyInvite("participant")}><CopyIcon /><span><strong>{inviteState === "copied" ? "Invite copied" : "Copy participant invite"}</strong><small>Share with the people joining the group</small></span></button><button onClick={() => void copyInvite("host")}><BuildingIcon /><span><strong>{inviteState === "copied" ? "Invite copied" : "Copy supplier invite"}</strong><small>Share with accommodation hosts you select</small></span></button><a href={explorerPath("address", campaign.address)} target="_blank" rel="noreferrer"><ShieldIcon /><span><strong>Inspect public settlement state</strong><small>Campaign, progress and final outcome on Explorer</small></span></a><a href="https://github.com/Techkeyy/compart/blob/main/DEMO_SCRIPT.md" target="_blank" rel="noreferrer"><ReceiptIcon /><span><strong>Open organizer runbook</strong><small>Verified demo and recovery sequence</small></span></a></div></div></div>}
       </section><aside className="room-sidebar"><section className="public-progress"><span className="app-kicker">PUBLIC ROOM SIGNAL</span><div><strong>{campaign.totalRequested} of {campaign.targetQuantity}</strong><span>{progressPercent}%</span></div><div className="app-progress"><i style={{ width: `${progressPercent}%` }} /></div><p>Everyone can see whether the group is becoming viable. Nobody can see a participant’s ceiling.</p><ul><li><span><UsersIcon size={14} /> Public commitments</span><strong>{campaign.bidCount}</strong></li><li><span><BuildingIcon size={14} /> Supplier quotes</span><strong>{campaign.offerCount}</strong></li><li><span><LockIcon size={14} /> Private values exposed</span><strong>0</strong></li></ul></section><section className="room-terms"><span className="app-kicker">DETAILS & TERMS</span><h3>{selectedMeta.propertyType}</h3><p>{selectedMeta.location}</p><div className="amenity-list">{selectedMeta.amenities.map((amenity) => <span key={amenity}>{amenity}</span>)}</div><dl><div><dt>Commitment deadline</dt><dd>{formatDeadline(campaign.deadline)}</dd></div><div><dt>Equal public deposit</dt><dd>SOL {displayAmount(campaign.depositCap)}</dd></div><div><dt>Clearing rule</dt><dd>Cheapest quote that fits the full required group</dd></div><div><dt>Refund rule</dt><dd>Full deposit if the group fails; excess after a successful clearing</dd></div></dl><div className="terms-note"><strong>Prototype inventory terms</strong><p>{selectedMeta.terms}</p></div></section><PrivacyProof campaignAddress={campaign.address} /></aside></div>
     </>}</div>}
   </main>;

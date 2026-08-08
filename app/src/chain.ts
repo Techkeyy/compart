@@ -77,6 +77,7 @@ const privateBudgetSeed = text("private-budget");
 const offerSeed = text("offer");
 const receiptSeed = text("receipt");
 const accessSeed = text("access");
+const inviteSeed = text("invite");
 
 export const baseConnection = new Connection(BASE_RPC, "confirmed");
 
@@ -759,6 +760,84 @@ export async function grantRoomAccess(
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ],
     data: instructionData(await discriminator("grant_room_access"), u8(role === "participant" ? 1 : 2)),
+  });
+  return sendWithWallet(baseConnection, wallet, new Transaction().add(instruction));
+}
+
+function inviteSecretToUrl(secret: Uint8Array): string {
+  let binary = "";
+  secret.forEach((value) => { binary += String.fromCharCode(value); });
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+
+function inviteSecretFromUrl(value: string): Uint8Array {
+  const padded = value.replace(/-/g, "+").replace(/_/g, "/") + "=".repeat((4 - (value.length % 4)) % 4);
+  const binary = atob(padded);
+  if (binary.length !== 32) throw new Error("This invite link is invalid.");
+  return Uint8Array.from(binary, (character) => character.charCodeAt(0));
+}
+
+export async function createClaimableInvite(
+  wallet: BrowserWallet,
+  role: "participant" | "host",
+  selectedCampaign?: PublicKey | string | null,
+): Promise<{ signature: string; invite: string; secret: string }> {
+  if (!wallet.publicKey) throw new Error("Connect the organizer wallet first.");
+  const campaignAddress = resolveCampaignAddress(selectedCampaign);
+  if (!campaignAddress) throw new Error("Choose a room first.");
+  const secretBytes = crypto.getRandomValues(new Uint8Array(32));
+  const secretHash = new Uint8Array(await crypto.subtle.digest("SHA-256", secretBytes));
+  const nonce = BigInt(Date.now()) * 1000n + BigInt(Math.floor(Math.random() * 1000));
+  const [invite] = PublicKey.findProgramAddressSync(
+    [inviteSeed, campaignAddress.toBytes(), u64Le(nonce)],
+    PROGRAM_ID,
+  );
+  const instruction = new TransactionInstruction({
+    programId: PROGRAM_ID,
+    keys: [
+      { pubkey: wallet.publicKey, isSigner: true, isWritable: true },
+      { pubkey: campaignAddress, isSigner: false, isWritable: false },
+      { pubkey: invite, isSigner: false, isWritable: true },
+      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+    ],
+    data: instructionData(
+      await discriminator("create_claimable_invite"),
+      u64Le(nonce),
+      u8(role === "participant" ? 1 : 2),
+      secretHash,
+    ),
+  });
+  return {
+    signature: await sendWithWallet(baseConnection, wallet, new Transaction().add(instruction)),
+    invite: invite.toBase58(),
+    secret: inviteSecretToUrl(secretBytes),
+  };
+}
+
+export async function claimRoomAccess(
+  wallet: BrowserWallet,
+  inviteAddress: string,
+  secret: string,
+  selectedCampaign?: PublicKey | string | null,
+): Promise<string> {
+  if (!wallet.publicKey) throw new Error("Connect the wallet receiving this invite first.");
+  const campaignAddress = resolveCampaignAddress(selectedCampaign);
+  if (!campaignAddress) throw new Error("This invite does not identify a room.");
+  const invite = new PublicKey(inviteAddress);
+  const [access] = PublicKey.findProgramAddressSync(
+    [accessSeed, campaignAddress.toBytes(), wallet.publicKey.toBytes()],
+    PROGRAM_ID,
+  );
+  const instruction = new TransactionInstruction({
+    programId: PROGRAM_ID,
+    keys: [
+      { pubkey: wallet.publicKey, isSigner: true, isWritable: true },
+      { pubkey: campaignAddress, isSigner: false, isWritable: false },
+      { pubkey: invite, isSigner: false, isWritable: true },
+      { pubkey: access, isSigner: false, isWritable: true },
+      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+    ],
+    data: instructionData(await discriminator("claim_room_access"), inviteSecretFromUrl(secret)),
   });
   return sendWithWallet(baseConnection, wallet, new Transaction().add(instruction));
 }

@@ -29,7 +29,7 @@ The first room is event accommodation because the pain is immediate: group chats
 5. The organizer computes outcome-only allocations in the private runtime.
 6. Only allocations and refund amounts return to Solana for settlement.
 
-The public chain learns the outcome it must enforce, not the private values used to reach it. Rooms are unlisted in the product, and the organizer must grant a recipient wallet either participant or supplier access before sharing the matching invitation. The program rejects a commitment or quote from a wallet without that explicit, matching role—even if it edits an invitation URL or calls the program directly. Public settlement state remains inspectable by anyone who already knows the Solana room address. See [ARCHITECTURE.md](ARCHITECTURE.md) for account boundaries and the full state transition.
+The public chain learns the outcome it must enforce, not the private values used to reach it. Rooms are unlisted in the product: an organizer creates a one-time participant or supplier claim link, and the recipient connects their own wallet to claim that role onchain. The program rejects a commitment or quote from a wallet without that explicit, matching role—even if it edits an invitation URL or calls the program directly. Public settlement state remains inspectable by anyone who already knows the Solana room address. See [ARCHITECTURE.md](ARCHITECTURE.md) for account boundaries and the full state transition.
 
 ## Current devnet deployment
 

@@ -18,12 +18,13 @@ and **Join with invite**.
 ### 0:12–0:27 — Create and invite
 
 Show a prepared room or create one with a group size, equal deposit, deadline,
-and simple prototype terms. In the organizer view, paste each recipient wallet,
-choose **Participant** or **Supplier**, and use **Grant access and copy invite**.
+and simple prototype terms. In the organizer view, choose **Participant** or
+**Supplier**, then use **Create and copy claim link**.
 
-> The organizer grants the exact wallet the exact job before sharing the link: one
-> invitation for the group and another for selected property hosts. The program itself
-> rejects a quote from a participant wallet or a commitment from an uninvited wallet.
+> The organizer shares a one-time, role-bound link: one for the group and another
+> for selected property hosts. When someone connects their wallet, they claim that
+> job onchain. The program rejects a quote from a participant wallet or a commitment
+> from an uninvited wallet.
 
 ### 0:27–0:45 — Private commitment
 

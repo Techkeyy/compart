@@ -18,6 +18,7 @@ use ephemeral_rollups_sdk::{
     cpi::DelegateConfig,
     ephem::MagicIntentBundleBuilder,
 };
+use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 
 declare_id!("E2jBtfWynBhkA7yxXfNFPrhpKuEZwweuvb1GDNzkRDEh");
@@ -29,6 +30,7 @@ pub const PRIVATE_BUDGET_SEED: &[u8] = b"private-budget";
 pub const OFFER_SEED: &[u8] = b"offer";
 pub const RECEIPT_SEED: &[u8] = b"receipt";
 pub const ACCESS_SEED: &[u8] = b"access";
+pub const INVITE_SEED: &[u8] = b"invite";
 pub const PARTICIPANT_ACCESS: u8 = 1;
 pub const SUPPLIER_ACCESS: u8 = 2;
 pub const MAX_BIDS: u16 = 25;
@@ -116,6 +118,54 @@ pub mod compartido_market {
         access.member = ctx.accounts.member.key();
         access.permissions = permissions;
         access.bump = ctx.bumps.access;
+        Ok(())
+    }
+
+    /// Creates a one-time capability link. The recipient's wallet is deliberately
+    /// unknown here: it is bound only when the recipient claims the secret.
+    pub fn create_claimable_invite(
+        ctx: Context<CreateClaimableInvite>,
+        nonce: u64,
+        permissions: u8,
+        secret_hash: [u8; 32],
+    ) -> Result<()> {
+        require!(
+            permissions == PARTICIPANT_ACCESS || permissions == SUPPLIER_ACCESS,
+            CompartidoError::InvalidAccessRole
+        );
+        require!(
+            ctx.accounts.campaign.status == CampaignStatus::Open,
+            CompartidoError::CampaignNotOpen
+        );
+        let invite = &mut ctx.accounts.invite;
+        invite.campaign = ctx.accounts.campaign.key();
+        invite.permissions = permissions;
+        invite.secret_hash = secret_hash;
+        invite.nonce = nonce;
+        invite.claimed = false;
+        invite.bump = ctx.bumps.invite;
+        Ok(())
+    }
+
+    /// The wallet that proves knowledge of a one-time link secret receives its
+    /// role onchain. The secret is never persisted, only its hash.
+    pub fn claim_room_access(ctx: Context<ClaimRoomAccess>, secret: [u8; 32]) -> Result<()> {
+        require!(
+            ctx.accounts.campaign.status == CampaignStatus::Open,
+            CompartidoError::CampaignNotOpen
+        );
+        let invite = &mut ctx.accounts.invite;
+        require!(!invite.claimed, CompartidoError::InviteAlreadyClaimed);
+        require!(
+            Sha256::digest(secret).as_slice() == invite.secret_hash,
+            CompartidoError::InvalidInviteSecret
+        );
+        let access = &mut ctx.accounts.access;
+        access.campaign = ctx.accounts.campaign.key();
+        access.member = ctx.accounts.member.key();
+        access.permissions = invite.permissions;
+        access.bump = ctx.bumps.access;
+        invite.claimed = true;
         Ok(())
     }
 
@@ -991,6 +1041,49 @@ pub struct GrantRoomAccess<'info> {
 }
 
 #[derive(Accounts)]
+#[instruction(nonce: u64)]
+pub struct CreateClaimableInvite<'info> {
+    #[account(mut)]
+    pub creator: Signer<'info>,
+    #[account(
+        constraint = campaign.creator == creator.key() @ CompartidoError::WrongCreator,
+    )]
+    pub campaign: Account<'info, Campaign>,
+    #[account(
+        init,
+        payer = creator,
+        space = ClaimableInvite::SPACE,
+        seeds = [INVITE_SEED, campaign.key().as_ref(), &nonce.to_le_bytes()],
+        bump
+    )]
+    pub invite: Account<'info, ClaimableInvite>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct ClaimRoomAccess<'info> {
+    #[account(mut)]
+    pub member: Signer<'info>,
+    pub campaign: Account<'info, Campaign>,
+    #[account(
+        mut,
+        seeds = [INVITE_SEED, campaign.key().as_ref(), &invite.nonce.to_le_bytes()],
+        bump = invite.bump,
+        constraint = invite.campaign == campaign.key() @ CompartidoError::WrongCampaign,
+    )]
+    pub invite: Account<'info, ClaimableInvite>,
+    #[account(
+        init,
+        payer = member,
+        space = RoomAccess::SPACE,
+        seeds = [ACCESS_SEED, campaign.key().as_ref(), member.key().as_ref()],
+        bump
+    )]
+    pub access: Account<'info, RoomAccess>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
 pub struct CreateBid<'info> {
     #[account(mut)]
     pub buyer: Signer<'info>,
@@ -1392,6 +1485,20 @@ impl RoomAccess {
     pub const SPACE: usize = 8 + 32 + 32 + 1 + 1;
 }
 
+#[account]
+pub struct ClaimableInvite {
+    pub campaign: Pubkey,
+    pub permissions: u8,
+    pub secret_hash: [u8; 32],
+    pub nonce: u64,
+    pub claimed: bool,
+    pub bump: u8,
+}
+
+impl ClaimableInvite {
+    pub const SPACE: usize = 8 + 32 + 1 + 32 + 8 + 1 + 1;
+}
+
 impl SupplierOffer {
     pub const SPACE: usize = 8 + 32 + 32 + 2 + 8 + 1 + 8 + 1;
 }
@@ -1496,6 +1603,10 @@ pub enum CompartidoError {
     ParticipantAccessRequired,
     #[msg("This wallet has not been invited as a supplier")]
     SupplierAccessRequired,
+    #[msg("This invite link has already been claimed")]
+    InviteAlreadyClaimed,
+    #[msg("This invite link is invalid")]
+    InvalidInviteSecret,
     #[msg("The campaign is not open")]
     CampaignNotOpen,
     #[msg("The campaign is closed")]
