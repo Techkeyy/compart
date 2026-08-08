@@ -116,6 +116,8 @@ Submission evidence required:
   cannot occur before private allocation.
 - The optimized 482,544-byte program and current IDL are saved under `artifacts/`.
 - The frontend opens in a live Solana room lobby instead of a hardcoded campaign.
+- The public build does not inject a featured room or demo metadata; it discovers
+  campaign accounts from the deployed program and uses room-specific invite data.
 - Organizers can create rooms on devnet; participants can enter an address or full
   invite link, and public accommodation details travel with the shared link.
 - Participant, host, and organizer workspaces are separated, with creator-wallet
@@ -267,10 +269,9 @@ UX rules:
 - Do not require users to understand ERs, PDAs, delegation, or RPC routing.
 - Show confirmed signatures rather than simulated success messages.
 
-The room, real participant commitment, supplier quote, refund, and prototype
-receipt paths are implemented and build cleanly. Organizer finalization remains
-script-driven until the hosted campaign is available; a compact organizer control
-can then replace the script if time permits.
+The room, real participant commitment, supplier quote, organizer finalization,
+refund, and prototype receipt paths are implemented in the application and build
+cleanly. The hosted scripts remain reproducible proof and recovery tools.
 
 ### Gate 4 — End-to-end hosted-devnet demo — complete
 

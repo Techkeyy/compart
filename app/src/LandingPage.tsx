@@ -11,11 +11,6 @@ export default function LandingPage() {
         <nav className="landing-links" aria-label="Main navigation">
           <a href="#how-it-works">How it works</a>
           <a href="#docs">Docs</a>
-          <a className="landing-nav-cta" href="#app">
-            <span className="nav-cta-full">Enter live app</span>
-            <span className="nav-cta-short">Open app</span>
-            <ArrowIcon size={15} />
-          </a>
         </nav>
       </header>
 
@@ -38,12 +33,9 @@ export default function LandingPage() {
           </div>
         </div>
 
-        <div className="landing-hero-visual" aria-label="A Compart live room preview">
+        <div className="landing-hero-visual" aria-label="A Compart collaboration scene">
           <img className="landing-hero-image" src={`${import.meta.env.BASE_URL}compart-collaboration.jpg`} alt="A group making a shared decision around a table" />
-          <div className="hero-corner-mark" aria-hidden="true"><i /><i /><i /><i /></div>
-          <div className="hero-image-caption"><span><i /> LIVE ROOM</span><strong>Solana Festival House</strong></div>
         </div>
-        <div className="hero-frame-pips" aria-hidden="true"><i /><i /><i /><i /></div>
       </section>
 
       <section className="landing-statement shell">
@@ -68,11 +60,6 @@ export default function LandingPage() {
           <a className="doc-card" href="https://github.com/Techkeyy/compart/blob/main/HOSTED_DEVNET_PROOF.md" target="_blank" rel="noreferrer"><span className="doc-label">VERIFIED</span><strong>Hosted proof</strong><p>See the two-wallet privacy denial, settlement, refunds, and receipts.</p><span className="doc-arrow">↗</span></a>
           <a className="doc-card" href="https://docs.magicblock.gg/pages/ephemeral-rollups-ers/how-to-guide/quickstart" target="_blank" rel="noreferrer"><span className="doc-label">MAGICBLOCK</span><strong>Ephemeral Rollups</strong><p>The official MagicBlock guide behind the live room experience.</p><span className="doc-arrow">↗</span></a>
         </div>
-      </section>
-
-      <section className="landing-cta shell">
-        <div><span className="eyebrow">Ready when you are</span><h2>Bring the group.<br /><em>Keep the number yours.</em></h2></div>
-        <a className="landing-primary light" href="#app">Enter the live app <ArrowIcon size={17} /></a>
       </section>
 
       <footer className="footer shell"><div><span className="brand-mark small-mark" aria-hidden="true"><i /><i /><i /></span><strong>Built for Solana Blitz v7</strong></div><p>Accommodation is the first room. Private group purchasing is the protocol.</p></footer>

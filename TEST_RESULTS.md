@@ -114,6 +114,9 @@ integration during the hackathon.
 - TypeScript checking and the Vite production build pass.
 - Desktop and 390 px mobile renders of the lobby, room creation flow, participant,
   host, and organizer workspaces were inspected after the full workflow build.
+- Landing-page QA confirms one live-app entry, no decorative frame overlays, and
+  no injected festival-room metadata. Live-app typography has a 12 px label and
+  14 px body/control readability floor across desktop and mobile.
 - Room discovery, dynamic address routing, share-link metadata, role separation,
   lifecycle and transaction steppers, result states, history/receipts, and privacy
   proof are included in the production TypeScript build.

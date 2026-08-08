@@ -70,7 +70,7 @@ Run the frontend locally:
 npm --prefix app run dev -- --host 127.0.0.1 --port 4173
 ```
 
-Open `http://127.0.0.1:4173`. The app reads the verified devnet program's live room directory without requiring a featured campaign. Creating a room or taking a room action requires an injected Solana wallet and explicit transaction approval. Copy `app/.env.example` to `app/.env.local` only when overriding the default RPCs or setting a featured campaign. Environment files containing local values remain ignored by Git.
+Open `http://127.0.0.1:4173`. The app reads the verified devnet program's live room directory without requiring a featured campaign. Creating a room or taking a room action requires an injected Solana wallet and explicit transaction approval. Copy `app/.env.example` to `app/.env.local` only when overriding the default network endpoints for local development. Environment files containing local values remain ignored by Git.
 
 ## Verification levels
 

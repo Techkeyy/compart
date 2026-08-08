@@ -53,3 +53,55 @@
 /* Keep directory labels anchored to their own artwork across card widths. */
 .room-art { position: relative; }
 .room-art > span { top: 14px; left: 14px; margin: 0; }
+
+/* Readability floor: live-product text must remain legible without browser zoom. */
+.product-app { font-size: 16px; }
+.product-app button,
+.product-app input,
+.product-app select,
+.product-app textarea { font-size: 14px !important; line-height: 1.45; }
+.product-app p,
+.product-app dd,
+.product-app li { font-size: 14px !important; line-height: 1.6; }
+.product-app small,
+.product-app dt,
+.product-app .app-kicker,
+.product-app .room-status,
+.product-app .room-card-status,
+.product-app .app-network,
+.product-app .role-badge,
+.product-app .best-badge { font-size: 12px !important; line-height: 1.45; }
+.product-app label,
+.product-app label > span,
+.product-app .directory-loading,
+.product-app .room-loading,
+.product-app .directory-note { font-size: 13px !important; line-height: 1.5; }
+.product-app .room-detail-row strong,
+.product-app .flow-steps li strong,
+.product-app .role-switcher button strong,
+.product-app .quote-board article strong,
+.product-app .organizer-actions strong,
+.product-app .room-terms dd,
+.product-app .terms-note strong,
+.product-app .receipt-grid dd,
+.product-app .history-list strong { font-size: 13px !important; line-height: 1.45; }
+.product-app .room-card-meta span,
+.product-app .amenity-list span,
+.product-app .organizer-kpis span,
+.product-app .personal-outcome span,
+.product-app .public-progress > div span,
+.product-app .range-labels,
+.product-app .transaction-link,
+.product-app .proof-actions a,
+.product-app .receipt-grid a { font-size: 12px !important; line-height: 1.45; }
+.product-app .room-hero-overlay span,
+.product-app .room-hero-overlay strong { font-size: 12px !important; }
+
+@media (max-width: 680px) {
+  .product-app p,
+  .product-app dd,
+  .product-app li { font-size: 14px !important; }
+  .product-app small,
+  .product-app dt,
+  .product-app .app-kicker { font-size: 12px !important; }
+}

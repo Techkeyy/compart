@@ -32,7 +32,7 @@ Open `http://127.0.0.1:4173`. The app defaults to the verified Solana devnet pro
 
 ## Configure devnet
 
-Copy `.env.example` to `.env.local` when you want to override the default RPC endpoints or feature a specific room. The live app can:
+Copy `.env.example` to `.env.local` when you want to override the default RPC endpoints. The public deployment discovers rooms dynamically and does not inject a featured campaign or demo room metadata. The live app can:
 
 - create a new room and treasury account;
 - discover public room accounts or join from an address/share link;
