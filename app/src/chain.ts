@@ -36,8 +36,12 @@ export type BrowserWallet = {
 declare global {
   interface Window {
     solana?: BrowserWallet;
+    phantom?: { solana?: BrowserWallet };
+    solflare?: BrowserWallet;
   }
 }
+
+let activeWalletProvider: BrowserWallet | null = null;
 
 const text = (value: string) => new TextEncoder().encode(value);
 
@@ -135,17 +139,32 @@ function walletSignature(
 }
 
 export async function connectBrowserWallet(): Promise<BrowserWallet> {
-  const wallet = window.solana;
-  if (!wallet) {
+  const provider = window.phantom?.solana || window.solflare || window.solana;
+  if (!provider) {
     throw new Error("No Solana wallet found. Install Phantom or Solflare to continue.");
   }
-  const response = await wallet.connect();
-  wallet.publicKey = response.publicKey;
+  const response = await provider.connect();
+  const publicKey = response.publicKey || provider.publicKey;
+  if (!publicKey) throw new Error("The wallet connected without returning an account.");
+
+  // Injected providers expose publicKey as a read-only getter. Return a bound
+  // adapter instead of assigning to the provider, which breaks Phantom after
+  // the connect approval and prevents the requested transaction from opening.
+  const wallet: BrowserWallet = {
+    publicKey,
+    connect: provider.connect.bind(provider),
+    disconnect: provider.disconnect?.bind(provider),
+    signTransaction: provider.signTransaction.bind(provider),
+    signMessage: provider.signMessage.bind(provider),
+  };
+  activeWalletProvider = provider;
   return wallet;
 }
 
 export async function disconnectBrowserWallet(): Promise<void> {
-  await window.solana?.disconnect?.();
+  const provider = activeWalletProvider || window.phantom?.solana || window.solflare || window.solana;
+  await provider?.disconnect?.();
+  activeWalletProvider = null;
 }
 
 export async function inspectProgram(): Promise<{
