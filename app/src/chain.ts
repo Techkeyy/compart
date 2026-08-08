@@ -1077,6 +1077,89 @@ export async function settleReadyCampaign(
   return sendWithWallet(baseConnection, wallet, new Transaction().add(instruction));
 }
 
+export async function cancelStalledCampaign(
+  wallet: BrowserWallet,
+  selectedCampaign: PublicKey | string,
+): Promise<string[]> {
+  if (!wallet.publicKey) throw new Error("Connect the organizer wallet first.");
+  const campaignAddress = resolveCampaignAddress(selectedCampaign);
+  if (!campaignAddress) throw new Error("Choose a room first.");
+  const room = await readCampaignRoom(campaignAddress);
+  if (!room || room.campaign.creator !== wallet.publicKey.toBase58()) {
+    throw new Error("Only the organizer can cancel this room.");
+  }
+  if (Math.floor(Date.now() / 1000) < room.campaign.deadline) {
+    throw new Error("Cancellation unlocks when the commitment deadline is reached.");
+  }
+
+  await verifyTeeRpcIntegrity(TEE_RPC);
+  const auth = await getAuthToken(TEE_RPC, wallet.publicKey, async (message) =>
+    walletSignature(await wallet.signMessage(message, "utf8")),
+  );
+  const token = encodeURIComponent(auth.token);
+  const privateConnection = new Connection(`${TEE_RPC}?token=${token}`, {
+    wsEndpoint: `${TEE_WS}?token=${token}`,
+    commitment: "confirmed",
+  });
+  const privateBids = await privateConnection.getProgramAccounts(PROGRAM_ID, {
+    commitment: "confirmed",
+    filters: [
+      { dataSize: 105 },
+      { memcmp: { offset: 8, bytes: campaignAddress.toBase58() } },
+    ],
+  });
+  if (privateBids.length !== room.campaign.bidCount) {
+    throw new Error("The complete private commitment set is not available for recovery yet.");
+  }
+  const bids = privateBids
+    .map(({ pubkey, account }) => decodeBidSnapshot(pubkey, account.data))
+    .sort((a, b) => a.address.localeCompare(b.address));
+  const signatures: string[] = [];
+  signatures.push(await sendWithWallet(privateConnection, wallet, new Transaction().add(new TransactionInstruction({
+    programId: PROGRAM_ID,
+    keys: [
+      { pubkey: wallet.publicKey, isSigner: true, isWritable: false },
+      { pubkey: campaignAddress, isSigner: false, isWritable: true },
+      { pubkey: PublicKey.findProgramAddressSync([treasurySeed, campaignAddress.toBytes()], PROGRAM_ID)[0], isSigner: false, isWritable: true },
+      { pubkey: DEVNET_USDC_MINT, isSigner: false, isWritable: false },
+      { pubkey: associatedTokenAddress(PublicKey.findProgramAddressSync([treasurySeed, campaignAddress.toBytes()], PROGRAM_ID)[0], DEVNET_USDC_MINT), isSigner: false, isWritable: true },
+      { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+      ...bids.flatMap((bid) => {
+        const bidAddress = new PublicKey(bid.address);
+        return [
+          { pubkey: bidAddress, isSigner: false, isWritable: true },
+          { pubkey: associatedTokenAddress(new PublicKey(bid.buyer), DEVNET_USDC_MINT), isSigner: false, isWritable: true },
+        ];
+      }),
+    ],
+    data: instructionData(await discriminator("cancel_campaign")),
+  }))));
+  for (const bid of bids) {
+    signatures.push(await sendWithWallet(privateConnection, wallet, new Transaction().add(new TransactionInstruction({
+      programId: PROGRAM_ID,
+      keys: [
+        { pubkey: wallet.publicKey, isSigner: true, isWritable: true },
+        { pubkey: campaignAddress, isSigner: false, isWritable: false },
+        { pubkey: new PublicKey(bid.address), isSigner: false, isWritable: true },
+        { pubkey: MAGIC_PROGRAM_ID, isSigner: false, isWritable: false },
+        { pubkey: MAGIC_CONTEXT_ID, isSigner: false, isWritable: true },
+      ],
+      data: instructionData(await discriminator("undelegate_bid")),
+    }))));
+  }
+  signatures.push(await sendWithWallet(privateConnection, wallet, new Transaction().add(new TransactionInstruction({
+    programId: PROGRAM_ID,
+    keys: [
+      { pubkey: wallet.publicKey, isSigner: true, isWritable: true },
+      { pubkey: campaignAddress, isSigner: false, isWritable: true },
+      { pubkey: MAGIC_PROGRAM_ID, isSigner: false, isWritable: false },
+      { pubkey: MAGIC_CONTEXT_ID, isSigner: false, isWritable: true },
+    ],
+    data: instructionData(await discriminator("undelegate_campaign")),
+  }))));
+  return signatures;
+}
+
 export async function runOrganizerSettlement(
   wallet: BrowserWallet,
   selectedCampaign: PublicKey | string,

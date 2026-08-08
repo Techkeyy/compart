@@ -655,7 +655,7 @@ pub mod compartido_market {
             CompartidoError::DeadlineNotReached
         );
         require!(
-            ctx.remaining_accounts.len() == campaign.bid_count as usize * 2,
+            ctx.remaining_accounts.len() == campaign.bid_count as usize,
             CompartidoError::IncompletePrivateBudgetSet
         );
 
@@ -792,7 +792,7 @@ pub mod compartido_market {
             CompartidoError::WrongSupplier
         );
         require!(
-            ctx.remaining_accounts.len() == campaign.bid_count as usize,
+            ctx.remaining_accounts.len() == campaign.bid_count as usize * 2,
             CompartidoError::IncompleteBidSet
         );
 
@@ -898,6 +898,81 @@ pub mod compartido_market {
             clearing_price: campaign.clearing_price,
             supplier_payout: payout,
         });
+        Ok(())
+    }
+
+    /// Emergency exit for a room whose private matching data cannot be read.
+    /// It is available only to the organizer after the deadline and always
+    /// produces full participant refunds; it can never pay the organizer.
+    pub fn cancel_campaign<'a>(ctx: Context<'a, CancelCampaign<'a>>) -> Result<()> {
+        let campaign = &mut ctx.accounts.campaign;
+        require!(
+            campaign.status == CampaignStatus::Open
+                || campaign.status == CampaignStatus::OfferSelected,
+            CompartidoError::CampaignNotOpen
+        );
+        require!(
+            Clock::get()?.unix_timestamp >= campaign.deadline,
+            CompartidoError::DeadlineNotReached
+        );
+        require!(
+            ctx.remaining_accounts.len() == campaign.bid_count as usize * 2,
+            CompartidoError::IncompleteBidSet
+        );
+
+        let mut seen = BTreeSet::new();
+        for pair in ctx.remaining_accounts.chunks_exact(2) {
+            let info = &pair[0];
+            let buyer_token = &pair[1];
+            require_keys_eq!(*info.owner, crate::ID, CompartidoError::InvalidAccountOwner);
+            require!(info.is_writable, CompartidoError::AccountMustBeWritable);
+            let data = info.try_borrow_data()?;
+            let mut slice: &[u8] = &data;
+            let mut bid =
+                Bid::try_deserialize(&mut slice).map_err(|_| CompartidoError::InvalidBidAccount)?;
+            drop(data);
+            require_keys_eq!(bid.campaign, campaign.key(), CompartidoError::WrongCampaign);
+            require!(!bid.settled, CompartidoError::BidAlreadySettled);
+            require!(seen.insert(bid.buyer), CompartidoError::DuplicateAccount);
+            let expected_buyer_token = anchor_spl::associated_token::get_associated_token_address(
+                &bid.buyer,
+                &campaign.payment_mint,
+            );
+            require_keys_eq!(
+                buyer_token.key(),
+                expected_buyer_token,
+                CompartidoError::WrongBuyer
+            );
+            let refund = bid.deposit;
+            token_interface::transfer_checked(
+                CpiContext::new_with_signer(
+                    ctx.accounts.token_program.key(),
+                    TransferChecked {
+                        from: ctx.accounts.treasury_token.to_account_info(),
+                        mint: ctx.accounts.payment_mint.to_account_info(),
+                        to: buyer_token.clone(),
+                        authority: ctx.accounts.treasury.to_account_info(),
+                    },
+                    &[&[
+                        TREASURY_SEED,
+                        campaign.key().as_ref(),
+                        &[campaign.treasury_bump],
+                    ]],
+                ),
+                refund,
+                campaign.payment_decimals,
+            )?;
+            bid.allocated_quantity = 0;
+            bid.refund_owed = 0;
+            bid.allocation_computed = true;
+            bid.settled = true;
+            bid.refund_claimed = true;
+            let mut data = info.try_borrow_mut_data()?;
+            bid.try_serialize(&mut &mut data[..])?;
+        }
+
+        campaign.allocated_quantity = 0;
+        campaign.status = CampaignStatus::Cancelled;
         Ok(())
     }
 
@@ -1453,6 +1528,21 @@ pub struct SettleCampaign<'info> {
     pub treasury_token: InterfaceAccount<'info, TokenAccount>,
     #[account(mut, token::mint = payment_mint, token::authority = supplier)]
     pub supplier_token: InterfaceAccount<'info, TokenAccount>,
+    pub token_program: Interface<'info, TokenInterface>,
+}
+
+#[derive(Accounts)]
+pub struct CancelCampaign<'info> {
+    pub creator: Signer<'info>,
+    #[account(mut, has_one = creator)]
+    pub campaign: Account<'info, Campaign>,
+    /// CHECK: Campaign-derived PDA signs the token transfer.
+    #[account(mut, seeds = [TREASURY_SEED, campaign.key().as_ref()], bump = campaign.treasury_bump)]
+    pub treasury: UncheckedAccount<'info>,
+    #[account(address = campaign.payment_mint)]
+    pub payment_mint: InterfaceAccount<'info, Mint>,
+    #[account(mut, token::mint = payment_mint, token::authority = treasury)]
+    pub treasury_token: InterfaceAccount<'info, TokenAccount>,
     pub token_program: Interface<'info, TokenInterface>,
 }
 
