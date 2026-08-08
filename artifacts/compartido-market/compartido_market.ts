@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/compartido_market.json`.
  */
 export type CompartidoMarket = {
-  "address": "9f6nQaRukJ7Gd4ks3ypRyWDe8eSm3V1EHbmoHwLm3HTs",
+  "address": "E2jBtfWynBhkA7yxXfNFPrhpKuEZwweuvb1GDNzkRDEh",
   "metadata": {
     "name": "compartidoMarket",
     "version": "0.1.0",
@@ -268,6 +268,32 @@ export type CompartidoMarket = {
           "writable": true
         },
         {
+          "name": "access",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  99,
+                  99,
+                  101,
+                  115,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "campaign"
+              },
+              {
+                "kind": "account",
+                "path": "buyer"
+              }
+            ]
+          }
+        },
+        {
           "name": "bid",
           "writable": true,
           "pda": {
@@ -373,38 +399,38 @@ export type CompartidoMarket = {
             "program": {
               "kind": "const",
               "value": [
-                128,
-                160,
-                26,
-                216,
-                164,
-                85,
-                48,
-                104,
-                105,
-                125,
-                91,
-                220,
+                193,
+                153,
                 54,
-                90,
+                116,
+                162,
+                199,
+                13,
+                13,
+                132,
+                83,
+                57,
+                178,
                 146,
-                238,
+                170,
+                67,
                 54,
-                191,
-                155,
-                202,
-                72,
-                18,
+                229,
+                193,
+                171,
+                44,
+                179,
+                199,
+                145,
+                60,
+                127,
                 247,
-                210,
-                146,
-                243,
-                166,
-                22,
-                200,
-                90,
-                61,
-                198
+                101,
+                64,
+                51,
+                141,
+                151,
+                26
               ]
             }
           }
@@ -510,7 +536,7 @@ export type CompartidoMarket = {
         },
         {
           "name": "ownerProgram",
-          "address": "9f6nQaRukJ7Gd4ks3ypRyWDe8eSm3V1EHbmoHwLm3HTs"
+          "address": "E2jBtfWynBhkA7yxXfNFPrhpKuEZwweuvb1GDNzkRDEh"
         },
         {
           "name": "delegationProgram",
@@ -569,38 +595,38 @@ export type CompartidoMarket = {
             "program": {
               "kind": "const",
               "value": [
-                128,
-                160,
-                26,
-                216,
-                164,
-                85,
-                48,
-                104,
-                105,
-                125,
-                91,
-                220,
+                193,
+                153,
                 54,
-                90,
+                116,
+                162,
+                199,
+                13,
+                13,
+                132,
+                83,
+                57,
+                178,
                 146,
-                238,
+                170,
+                67,
                 54,
-                191,
-                155,
-                202,
-                72,
-                18,
+                229,
+                193,
+                171,
+                44,
+                179,
+                199,
+                145,
+                60,
+                127,
                 247,
-                210,
-                146,
-                243,
-                166,
-                22,
-                200,
-                90,
-                61,
-                198
+                101,
+                64,
+                51,
+                141,
+                151,
+                26
               ]
             }
           }
@@ -711,7 +737,7 @@ export type CompartidoMarket = {
         },
         {
           "name": "ownerProgram",
-          "address": "9f6nQaRukJ7Gd4ks3ypRyWDe8eSm3V1EHbmoHwLm3HTs"
+          "address": "E2jBtfWynBhkA7yxXfNFPrhpKuEZwweuvb1GDNzkRDEh"
         },
         {
           "name": "delegationProgram",
@@ -726,6 +752,72 @@ export type CompartidoMarket = {
         {
           "name": "campaignId",
           "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "grantRoomAccess",
+      "docs": [
+        "The organizer grants a wallet one explicit role before sharing its invite."
+      ],
+      "discriminator": [
+        177,
+        153,
+        60,
+        19,
+        242,
+        112,
+        23,
+        177
+      ],
+      "accounts": [
+        {
+          "name": "creator",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "campaign"
+        },
+        {
+          "name": "member"
+        },
+        {
+          "name": "access",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  99,
+                  99,
+                  101,
+                  115,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "campaign"
+              },
+              {
+                "kind": "account",
+                "path": "member"
+              }
+            ]
+          }
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "permissions",
+          "type": "u8"
         }
       ]
     },
@@ -1261,6 +1353,32 @@ export type CompartidoMarket = {
         {
           "name": "campaign",
           "writable": true
+        },
+        {
+          "name": "access",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  99,
+                  99,
+                  101,
+                  115,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "campaign"
+              },
+              {
+                "kind": "account",
+                "path": "supplier"
+              }
+            ]
+          }
         },
         {
           "name": "offer",
@@ -1900,6 +2018,19 @@ export type CompartidoMarket = {
       ]
     },
     {
+      "name": "roomAccess",
+      "discriminator": [
+        67,
+        109,
+        128,
+        117,
+        156,
+        151,
+        35,
+        99
+      ]
+    },
+    {
       "name": "supplierOffer",
       "discriminator": [
         194,
@@ -2037,166 +2168,181 @@ export type CompartidoMarket = {
     },
     {
       "code": 6003,
+      "name": "invalidAccessRole",
+      "msg": "Choose a participant or supplier access role"
+    },
+    {
+      "code": 6004,
+      "name": "participantAccessRequired",
+      "msg": "This wallet has not been invited as a participant"
+    },
+    {
+      "code": 6005,
+      "name": "supplierAccessRequired",
+      "msg": "This wallet has not been invited as a supplier"
+    },
+    {
+      "code": 6006,
       "name": "campaignNotOpen",
       "msg": "The campaign is not open"
     },
     {
-      "code": 6004,
+      "code": 6007,
       "name": "campaignClosed",
       "msg": "The campaign is closed"
     },
     {
-      "code": 6005,
+      "code": 6008,
       "name": "deadlineNotReached",
       "msg": "The campaign deadline has not been reached"
     },
     {
-      "code": 6006,
+      "code": 6009,
       "name": "bidLimitReached",
       "msg": "The maximum number of demo bids has been reached"
     },
     {
-      "code": 6007,
+      "code": 6010,
       "name": "offerLimitReached",
       "msg": "The maximum number of demo offers has been reached"
     },
     {
-      "code": 6008,
+      "code": 6011,
       "name": "insufficientSupply",
       "msg": "Supplier quantity does not meet the campaign target"
     },
     {
-      "code": 6009,
+      "code": 6012,
       "name": "noOffers",
       "msg": "No supplier offers were posted"
     },
     {
-      "code": 6010,
+      "code": 6013,
       "name": "incompleteOfferSet",
       "msg": "Every supplier offer must be included"
     },
     {
-      "code": 6011,
+      "code": 6014,
       "name": "incompleteBidSet",
       "msg": "Every buyer bid must be included"
     },
     {
-      "code": 6012,
+      "code": 6015,
       "name": "incompletePrivateBudgetSet",
       "msg": "Every public commitment and private budget pair must be included"
     },
     {
-      "code": 6013,
+      "code": 6016,
       "name": "invalidAccountOwner",
       "msg": "An account belongs to another program"
     },
     {
-      "code": 6014,
+      "code": 6017,
       "name": "invalidOfferAccount",
       "msg": "The account is not a valid supplier offer"
     },
     {
-      "code": 6015,
+      "code": 6018,
       "name": "invalidBidAccount",
       "msg": "The account is not a valid bid"
     },
     {
-      "code": 6016,
+      "code": 6019,
       "name": "invalidPrivateBudgetAccount",
       "msg": "The account is not a valid private budget"
     },
     {
-      "code": 6017,
+      "code": 6020,
       "name": "wrongCampaign",
       "msg": "The account belongs to another campaign"
     },
     {
-      "code": 6018,
+      "code": 6021,
       "name": "wrongCommitment",
       "msg": "The private budget belongs to another commitment"
     },
     {
-      "code": 6019,
+      "code": 6022,
       "name": "wrongBuyer",
       "msg": "The private budget belongs to another buyer"
     },
     {
-      "code": 6020,
+      "code": 6023,
       "name": "wrongCreator",
       "msg": "The campaign creator is required"
     },
     {
-      "code": 6021,
+      "code": 6024,
       "name": "duplicateAccount",
       "msg": "Duplicate participant account"
     },
     {
-      "code": 6022,
+      "code": 6025,
       "name": "inactiveOffer",
       "msg": "The supplier offer is inactive"
     },
     {
-      "code": 6023,
+      "code": 6026,
       "name": "offerNotSelected",
       "msg": "A winning offer has not been selected"
     },
     {
-      "code": 6024,
+      "code": 6027,
       "name": "wrongSupplier",
       "msg": "The supplied payout account is not the winning supplier"
     },
     {
-      "code": 6025,
+      "code": 6028,
       "name": "bidAlreadySettled",
       "msg": "The bid was already settled"
     },
     {
-      "code": 6026,
+      "code": 6029,
       "name": "allocationsAlreadyComputed",
       "msg": "Private allocations have already been computed"
     },
     {
-      "code": 6027,
+      "code": 6030,
       "name": "allocationsNotComputed",
       "msg": "Private allocations have not been computed"
     },
     {
-      "code": 6028,
+      "code": 6031,
       "name": "accountMustBeWritable",
       "msg": "The remaining bid account must be writable"
     },
     {
-      "code": 6029,
+      "code": 6032,
       "name": "escrowInvariant",
       "msg": "Escrow accounting invariant failed"
     },
     {
-      "code": 6030,
+      "code": 6033,
       "name": "campaignNotSettled",
       "msg": "The campaign is not settled"
     },
     {
-      "code": 6031,
+      "code": 6034,
       "name": "bidNotSettled",
       "msg": "The bid is not settled"
     },
     {
-      "code": 6032,
+      "code": 6035,
       "name": "refundAlreadyClaimed",
       "msg": "The refund was already claimed"
     },
     {
-      "code": 6033,
+      "code": 6036,
       "name": "noAllocation",
       "msg": "This bid received no allocation"
     },
     {
-      "code": 6034,
+      "code": 6037,
       "name": "receiptAlreadyClaimed",
       "msg": "The access receipt was already claimed"
     },
     {
-      "code": 6035,
+      "code": 6038,
       "name": "mathOverflow",
       "msg": "Arithmetic overflow"
     }
@@ -2565,6 +2711,30 @@ export type CompartidoMarket = {
           {
             "name": "amount",
             "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "roomAccess",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "campaign",
+            "type": "pubkey"
+          },
+          {
+            "name": "member",
+            "type": "pubkey"
+          },
+          {
+            "name": "permissions",
+            "type": "u8"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
           }
         ]
       }

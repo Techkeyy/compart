@@ -31,17 +31,17 @@ The first room is event accommodation because the pain is immediate: group chats
 
 The public chain learns the outcome it must enforce, not the private values used to reach it. Rooms are unlisted in the product, and the organizer must grant a recipient wallet either participant or supplier access before sharing the matching invitation. The program rejects a commitment or quote from a wallet without that explicit, matching role—even if it edits an invitation URL or calls the program directly. Public settlement state remains inspectable by anyone who already knows the Solana room address. See [ARCHITECTURE.md](ARCHITECTURE.md) for account boundaries and the full state transition.
 
-## Verified devnet deployment
+## Current devnet deployment
 
 | Item | Value |
 | --- | --- |
 | Network | Solana devnet + MagicBlock hosted TEE |
-| Program | [`9f6n…Lm3HTs`](https://explorer.solana.com/address/9f6nQaRukJ7Gd4ks3ypRyWDe8eSm3V1EHbmoHwLm3HTs?cluster=devnet) |
-| Live campaign | [`B58n…i4jfh`](https://explorer.solana.com/address/B58nZRh9XEvUMNN45TdUmTaXQTbAWFUDcqnKC28i4jfh?cluster=devnet) |
-| Campaign initialization | [Confirmed transaction](https://explorer.solana.com/tx/3BMKUWMNUU3JSNnqG2pa9apcFC5NJKMtfj8MmsEwF6BMf6Enxo11eZnaxVwetEeCCStRbxVizceTMiBzpkPcZPpP?cluster=devnet) |
-| Full lifecycle evidence | [HOSTED_DEVNET_PROOF.md](HOSTED_DEVNET_PROOF.md) |
+| Program | [`E2jB…kRDEh`](https://explorer.solana.com/address/E2jBtfWynBhkA7yxXfNFPrhpKuEZwweuvb1GDNzkRDEh?cluster=devnet) |
+| Upgrade authority | Fresh local devnet-only wallet (not committed) |
+| Access model | Organizer-granted wallet role required for participant or supplier actions |
+| Full lifecycle evidence | [HOSTED_DEVNET_PROOF.md](HOSTED_DEVNET_PROOF.md) — archival proof for the prior deployment |
 
-The recorded hosted lifecycle covers two-wallet privacy denial, outcome-only allocation, settlement, three refunds, and two prototype receipts. The deployed bytes also match the checked local artifact; reproducible details live in [TEST_RESULTS.md](TEST_RESULTS.md).
+The current deployment contains the full role-enforcement program. The recorded hosted lifecycle covers two-wallet privacy denial, outcome-only allocation, settlement, three refunds, and two prototype receipts on the prior deployment; reproducible details live in [TEST_RESULTS.md](TEST_RESULTS.md).
 
 ## Repository map
 

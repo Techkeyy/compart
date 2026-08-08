@@ -46,7 +46,7 @@ let activeWalletProvider: BrowserWallet | null = null;
 const text = (value: string) => new TextEncoder().encode(value);
 
 export const PROGRAM_ID = new PublicKey(
-  "9f6nQaRukJ7Gd4ks3ypRyWDe8eSm3V1EHbmoHwLm3HTs",
+  "E2jBtfWynBhkA7yxXfNFPrhpKuEZwweuvb1GDNzkRDEh",
 );
 export const NETWORK: SolanaNetwork =
   import.meta.env.VITE_SOLANA_NETWORK === "mainnet-beta"

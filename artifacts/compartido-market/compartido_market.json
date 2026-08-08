@@ -1,5 +1,5 @@
 {
-  "address": "9f6nQaRukJ7Gd4ks3ypRyWDe8eSm3V1EHbmoHwLm3HTs",
+  "address": "E2jBtfWynBhkA7yxXfNFPrhpKuEZwweuvb1GDNzkRDEh",
   "metadata": {
     "name": "compartido_market",
     "version": "0.1.0",
@@ -262,6 +262,32 @@
           "writable": true
         },
         {
+          "name": "access",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  99,
+                  99,
+                  101,
+                  115,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "campaign"
+              },
+              {
+                "kind": "account",
+                "path": "buyer"
+              }
+            ]
+          }
+        },
+        {
           "name": "bid",
           "writable": true,
           "pda": {
@@ -367,38 +393,38 @@
             "program": {
               "kind": "const",
               "value": [
-                128,
-                160,
-                26,
-                216,
-                164,
-                85,
-                48,
-                104,
-                105,
-                125,
-                91,
-                220,
+                193,
+                153,
                 54,
-                90,
+                116,
+                162,
+                199,
+                13,
+                13,
+                132,
+                83,
+                57,
+                178,
                 146,
-                238,
+                170,
+                67,
                 54,
-                191,
-                155,
-                202,
-                72,
-                18,
+                229,
+                193,
+                171,
+                44,
+                179,
+                199,
+                145,
+                60,
+                127,
                 247,
-                210,
-                146,
-                243,
-                166,
-                22,
-                200,
-                90,
-                61,
-                198
+                101,
+                64,
+                51,
+                141,
+                151,
+                26
               ]
             }
           }
@@ -504,7 +530,7 @@
         },
         {
           "name": "owner_program",
-          "address": "9f6nQaRukJ7Gd4ks3ypRyWDe8eSm3V1EHbmoHwLm3HTs"
+          "address": "E2jBtfWynBhkA7yxXfNFPrhpKuEZwweuvb1GDNzkRDEh"
         },
         {
           "name": "delegation_program",
@@ -563,38 +589,38 @@
             "program": {
               "kind": "const",
               "value": [
-                128,
-                160,
-                26,
-                216,
-                164,
-                85,
-                48,
-                104,
-                105,
-                125,
-                91,
-                220,
+                193,
+                153,
                 54,
-                90,
+                116,
+                162,
+                199,
+                13,
+                13,
+                132,
+                83,
+                57,
+                178,
                 146,
-                238,
+                170,
+                67,
                 54,
-                191,
-                155,
-                202,
-                72,
-                18,
+                229,
+                193,
+                171,
+                44,
+                179,
+                199,
+                145,
+                60,
+                127,
                 247,
-                210,
-                146,
-                243,
-                166,
-                22,
-                200,
-                90,
-                61,
-                198
+                101,
+                64,
+                51,
+                141,
+                151,
+                26
               ]
             }
           }
@@ -705,7 +731,7 @@
         },
         {
           "name": "owner_program",
-          "address": "9f6nQaRukJ7Gd4ks3ypRyWDe8eSm3V1EHbmoHwLm3HTs"
+          "address": "E2jBtfWynBhkA7yxXfNFPrhpKuEZwweuvb1GDNzkRDEh"
         },
         {
           "name": "delegation_program",
@@ -720,6 +746,72 @@
         {
           "name": "campaign_id",
           "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "grant_room_access",
+      "docs": [
+        "The organizer grants a wallet one explicit role before sharing its invite."
+      ],
+      "discriminator": [
+        177,
+        153,
+        60,
+        19,
+        242,
+        112,
+        23,
+        177
+      ],
+      "accounts": [
+        {
+          "name": "creator",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "campaign"
+        },
+        {
+          "name": "member"
+        },
+        {
+          "name": "access",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  99,
+                  99,
+                  101,
+                  115,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "campaign"
+              },
+              {
+                "kind": "account",
+                "path": "member"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "permissions",
+          "type": "u8"
         }
       ]
     },
@@ -1255,6 +1347,32 @@
         {
           "name": "campaign",
           "writable": true
+        },
+        {
+          "name": "access",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  99,
+                  99,
+                  101,
+                  115,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "campaign"
+              },
+              {
+                "kind": "account",
+                "path": "supplier"
+              }
+            ]
+          }
         },
         {
           "name": "offer",
@@ -1894,6 +2012,19 @@
       ]
     },
     {
+      "name": "RoomAccess",
+      "discriminator": [
+        67,
+        109,
+        128,
+        117,
+        156,
+        151,
+        35,
+        99
+      ]
+    },
+    {
       "name": "SupplierOffer",
       "discriminator": [
         194,
@@ -2031,166 +2162,181 @@
     },
     {
       "code": 6003,
+      "name": "InvalidAccessRole",
+      "msg": "Choose a participant or supplier access role"
+    },
+    {
+      "code": 6004,
+      "name": "ParticipantAccessRequired",
+      "msg": "This wallet has not been invited as a participant"
+    },
+    {
+      "code": 6005,
+      "name": "SupplierAccessRequired",
+      "msg": "This wallet has not been invited as a supplier"
+    },
+    {
+      "code": 6006,
       "name": "CampaignNotOpen",
       "msg": "The campaign is not open"
     },
     {
-      "code": 6004,
+      "code": 6007,
       "name": "CampaignClosed",
       "msg": "The campaign is closed"
     },
     {
-      "code": 6005,
+      "code": 6008,
       "name": "DeadlineNotReached",
       "msg": "The campaign deadline has not been reached"
     },
     {
-      "code": 6006,
+      "code": 6009,
       "name": "BidLimitReached",
       "msg": "The maximum number of demo bids has been reached"
     },
     {
-      "code": 6007,
+      "code": 6010,
       "name": "OfferLimitReached",
       "msg": "The maximum number of demo offers has been reached"
     },
     {
-      "code": 6008,
+      "code": 6011,
       "name": "InsufficientSupply",
       "msg": "Supplier quantity does not meet the campaign target"
     },
     {
-      "code": 6009,
+      "code": 6012,
       "name": "NoOffers",
       "msg": "No supplier offers were posted"
     },
     {
-      "code": 6010,
+      "code": 6013,
       "name": "IncompleteOfferSet",
       "msg": "Every supplier offer must be included"
     },
     {
-      "code": 6011,
+      "code": 6014,
       "name": "IncompleteBidSet",
       "msg": "Every buyer bid must be included"
     },
     {
-      "code": 6012,
+      "code": 6015,
       "name": "IncompletePrivateBudgetSet",
       "msg": "Every public commitment and private budget pair must be included"
     },
     {
-      "code": 6013,
+      "code": 6016,
       "name": "InvalidAccountOwner",
       "msg": "An account belongs to another program"
     },
     {
-      "code": 6014,
+      "code": 6017,
       "name": "InvalidOfferAccount",
       "msg": "The account is not a valid supplier offer"
     },
     {
-      "code": 6015,
+      "code": 6018,
       "name": "InvalidBidAccount",
       "msg": "The account is not a valid bid"
     },
     {
-      "code": 6016,
+      "code": 6019,
       "name": "InvalidPrivateBudgetAccount",
       "msg": "The account is not a valid private budget"
     },
     {
-      "code": 6017,
+      "code": 6020,
       "name": "WrongCampaign",
       "msg": "The account belongs to another campaign"
     },
     {
-      "code": 6018,
+      "code": 6021,
       "name": "WrongCommitment",
       "msg": "The private budget belongs to another commitment"
     },
     {
-      "code": 6019,
+      "code": 6022,
       "name": "WrongBuyer",
       "msg": "The private budget belongs to another buyer"
     },
     {
-      "code": 6020,
+      "code": 6023,
       "name": "WrongCreator",
       "msg": "The campaign creator is required"
     },
     {
-      "code": 6021,
+      "code": 6024,
       "name": "DuplicateAccount",
       "msg": "Duplicate participant account"
     },
     {
-      "code": 6022,
+      "code": 6025,
       "name": "InactiveOffer",
       "msg": "The supplier offer is inactive"
     },
     {
-      "code": 6023,
+      "code": 6026,
       "name": "OfferNotSelected",
       "msg": "A winning offer has not been selected"
     },
     {
-      "code": 6024,
+      "code": 6027,
       "name": "WrongSupplier",
       "msg": "The supplied payout account is not the winning supplier"
     },
     {
-      "code": 6025,
+      "code": 6028,
       "name": "BidAlreadySettled",
       "msg": "The bid was already settled"
     },
     {
-      "code": 6026,
+      "code": 6029,
       "name": "AllocationsAlreadyComputed",
       "msg": "Private allocations have already been computed"
     },
     {
-      "code": 6027,
+      "code": 6030,
       "name": "AllocationsNotComputed",
       "msg": "Private allocations have not been computed"
     },
     {
-      "code": 6028,
+      "code": 6031,
       "name": "AccountMustBeWritable",
       "msg": "The remaining bid account must be writable"
     },
     {
-      "code": 6029,
+      "code": 6032,
       "name": "EscrowInvariant",
       "msg": "Escrow accounting invariant failed"
     },
     {
-      "code": 6030,
+      "code": 6033,
       "name": "CampaignNotSettled",
       "msg": "The campaign is not settled"
     },
     {
-      "code": 6031,
+      "code": 6034,
       "name": "BidNotSettled",
       "msg": "The bid is not settled"
     },
     {
-      "code": 6032,
+      "code": 6035,
       "name": "RefundAlreadyClaimed",
       "msg": "The refund was already claimed"
     },
     {
-      "code": 6033,
+      "code": 6036,
       "name": "NoAllocation",
       "msg": "This bid received no allocation"
     },
     {
-      "code": 6034,
+      "code": 6037,
       "name": "ReceiptAlreadyClaimed",
       "msg": "The access receipt was already claimed"
     },
     {
-      "code": 6035,
+      "code": 6038,
       "name": "MathOverflow",
       "msg": "Arithmetic overflow"
     }
@@ -2559,6 +2705,30 @@
           {
             "name": "amount",
             "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RoomAccess",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "campaign",
+            "type": "pubkey"
+          },
+          {
+            "name": "member",
+            "type": "pubkey"
+          },
+          {
+            "name": "permissions",
+            "type": "u8"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
           }
         ]
       }

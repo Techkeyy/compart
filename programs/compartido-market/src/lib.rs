@@ -20,7 +20,7 @@ use ephemeral_rollups_sdk::{
 };
 use std::collections::BTreeSet;
 
-declare_id!("9f6nQaRukJ7Gd4ks3ypRyWDe8eSm3V1EHbmoHwLm3HTs");
+declare_id!("E2jBtfWynBhkA7yxXfNFPrhpKuEZwweuvb1GDNzkRDEh");
 
 pub const CAMPAIGN_SEED: &[u8] = b"campaign";
 pub const TREASURY_SEED: &[u8] = b"treasury";
