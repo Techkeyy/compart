@@ -27,8 +27,8 @@ invite** and **Copy supplier invite**.
 
 ### 0:27–0:45 — Private commitment
 
-Open the participant invitation with Wallet A. Choose a maximum of €165 and run
-the commitment flow. Show the public progress move without showing the €165 limit.
+Open the participant invitation with Wallet A. Choose a maximum of 0.02 SOL and
+run the commitment flow. Show the public progress move without showing the limit.
 
 > Everyone puts down the same refundable public deposit. Their personal maximum
 > is protected in MagicBlock’s private runtime, so neither friends nor suppliers
@@ -41,7 +41,8 @@ Open the public Explorer transaction.
 ### 0:45–1:02 — Competing supply, one fair price
 
 Open the supplier invitation with two supplier wallets. Show complete-group quotes
-of €158 and €142 per person. Return to the organizer view after the deadline and
+of 0.016 SOL and 0.014 SOL per person. Return to the organizer view after the
+deadline and
 start **Close, match and settle**.
 
 > Suppliers compete for the whole group. Compart privately checks whether enough
@@ -52,7 +53,7 @@ Show the guided private matching and public settlement steps.
 
 ### 1:02–1:20 — Outcome and safety net
 
-Show the settled room: winning supplier, equal €142 allocation price, excess
+Show the settled room: winning supplier, equal 0.014 SOL allocation price, excess
 refunds, and a participant prototype receipt.
 
 > The group pays one fair clearing price. Participants who deposited more receive
@@ -75,4 +76,4 @@ Open the final Solana Explorer transaction and the receipt account.
   transaction has completed.
 - Call the final document a **prototype booking voucher**, not proof that a real
   property was booked.
-- Devnet transfers are prototype accounting, not euros or live customer funds.
+- Devnet transfers are prototype accounting, not dollars, USDC, or live customer funds.

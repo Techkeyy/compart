@@ -8,6 +8,8 @@ Compart lets a group make one conditional purchase without asking everyone to re
 
 The live product starts with a private-room lobby rather than a fixed demo or a public marketplace. An organizer creates an unlisted room and shares a participant or supplier invitation; a new visitor can create a room or open an invitation, but cannot browse other people’s rooms. Participant, supplier, and organizer actions are presented in separate workspaces. Every room shows its lifecycle, transaction progress, public terms, privacy boundary, final outcome, and available receipts.
 
+All live amount fields are denominated in devnet SOL. Compart does not imply a fiat-dollar or USDC exchange rate.
+
 The first room is event accommodation because the pain is immediate: group chats stall, one person often fronts the money, and budgets are socially awkward. The underlying primitive can later support retreats, event passes, memberships, shared software, and other threshold purchases.
 
 ## Why it matters

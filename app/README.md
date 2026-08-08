@@ -30,6 +30,8 @@ npm --prefix app run dev -- --host 127.0.0.1 --port 4173
 
 Open `http://127.0.0.1:4173`. The app defaults to the verified Solana devnet program. It has no public room directory: a visitor creates a room or opens an invitation, while a connected wallet sees only rooms it created, joined, or received a receipt from. Wallet actions are real devnet transactions and always require approval from an injected Solana wallet such as Phantom or Solflare.
 
+All app amounts are entered, displayed, and transferred as devnet SOL; no fiat-dollar or USDC exchange rate is implied.
+
 ## Configure devnet
 
 Copy `.env.example` to `.env.local` when you want to override the default RPC endpoints. The public deployment does not inject a featured campaign or demo room metadata. The live app can:
