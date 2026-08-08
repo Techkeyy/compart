@@ -20,6 +20,7 @@ import {
   createPrivateCommitment,
   disconnectBrowserWallet,
   inspectProgram,
+  hasParticipantAccess,
   normalizeCampaignAddress,
   postSupplierOffer,
   readBuyerRoomAddresses,
@@ -590,6 +591,12 @@ export default function LiveApp() {
       if (isOrganizer) {
         const selfInvite = await createClaimableInvite(activeWallet, "participant", selectedAddress);
         await claimRoomAccess(activeWallet, selfInvite.invite, selfInvite.secret, selectedAddress);
+      } else {
+        const url = new URL(window.location.href);
+        const hasClaimLink = Boolean(url.searchParams.get("invite") && url.searchParams.get("claim"));
+        if (!hasClaimLink && !await hasParticipantAccess(activeWallet.publicKey, selectedAddress)) {
+          throw new Error("This is a private room. Open the one-time participant link sent by the organizer before committing.");
+        }
       }
       await claimInviteIfPresent(activeWallet);
       const result = await createPrivateCommitment(

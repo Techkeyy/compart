@@ -543,6 +543,20 @@ export async function readParticipantPosition(
   return info ? decodeBid(info.data) : null;
 }
 
+export async function hasParticipantAccess(
+  buyer: PublicKey,
+  selectedCampaign?: PublicKey | string | null,
+): Promise<boolean> {
+  const campaignAddress = resolveCampaignAddress(selectedCampaign);
+  if (!campaignAddress) return false;
+  const [access] = PublicKey.findProgramAddressSync(
+    [accessSeed, campaignAddress.toBytes(), buyer.toBytes()],
+    PROGRAM_ID,
+  );
+  const account = await baseConnection.getAccountInfo(access, "confirmed");
+  return Boolean(account?.owner.equals(PROGRAM_ID));
+}
+
 export async function createPrivateCommitment(
   wallet: BrowserWallet,
   maxUnitPrice: bigint,
