@@ -388,6 +388,16 @@ export default function LiveApp() {
   }, [refreshRoom, selectedAddress, view]);
 
   useEffect(() => {
+    if (!campaign || view !== "room" || now >= campaign.deadline) return;
+    const delay = Math.max(250, (campaign.deadline - now) * 1_000 + 250);
+    const timer = window.setTimeout(() => {
+      setNow(Math.floor(Date.now() / 1000));
+      void refreshRoom();
+    }, delay);
+    return () => window.clearTimeout(timer);
+  }, [campaign?.deadline, now, refreshRoom, view]);
+
+  useEffect(() => {
     if (!campaign) return;
     setMaxBudget(displayAmount(campaign.depositCap));
     setHostQuantity(campaign.targetQuantity);
