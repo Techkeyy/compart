@@ -4,13 +4,23 @@
 
 [Open the overview](https://techkeyy.github.io/compart/) · [Enter the live app](https://techkeyy.github.io/compart/#app) · [View the hosted proof](HOSTED_DEVNET_PROOF.md) · [Read the architecture](ARCHITECTURE.md)
 
-Compart lets a group make one conditional purchase without asking everyone to reveal what they can afford. Each person commits the same public deposit and privately sets a maximum. Suppliers quote for the whole group. The purchase clears only when enough private limits can support one quote; otherwise participants can reclaim their deposits.
+Compart lets a group make one conditional purchase without asking everyone to reveal what they can afford. Each person commits the same public deposit and privately sets a maximum. A deal-option publisher quotes for the whole group. The purchase clears only when enough private limits can support one quote; otherwise participants can reclaim their deposits.
 
-The live product starts with a private-room lobby rather than a fixed demo or a public marketplace. An organizer creates an unlisted room and shares a participant or supplier invitation; a new visitor can create a room or open an invitation, but cannot browse other people’s rooms. Participant, supplier, and organizer actions are presented in separate workspaces. Every room shows its lifecycle, transaction progress, public terms, privacy boundary, final outcome, and available receipts.
+The live product starts with a private-room lobby rather than a fixed demo or a public marketplace. An organizer creates an unlisted room and shares a participant or deal-option invitation; a new visitor can create a room or open an invitation, but cannot browse other people’s rooms. Participant, deal-option, and organizer actions are presented in separate workspaces. Every room shows its lifecycle, transaction progress, public terms, privacy boundary, final outcome, and available receipts.
 
 All live amount fields are denominated in devnet SOL. Compart does not imply a fiat-dollar or USDC exchange rate.
 
 The first room is event accommodation because the pain is immediate: group chats stall, one person often fronts the money, and budgets are socially awkward. The underlying primitive can later support retreats, event passes, memberships, shared software, and other threshold purchases.
+
+## Blitz v7 fit
+
+- **Required integration:** participant commitments delegate to MagicBlock Ephemeral Rollups.
+- **Theme — collaboration:** a group coordinates one conditional checkout without exposing individual budgets.
+- **Creativity:** Compart handles the decision before anyone pays, rather than tracking debts after the fact.
+- **Technical depth:** permissioned Private ER state, private matching, and public Solana settlement are connected end to end.
+- **Compelling Solana showcase:** the room, deposits, outcomes, refunds, and prototype receipts are all inspectable on devnet.
+
+The deal-option publisher is simply the payout role for a selected group option; it is not a hackathon requirement.
 
 ## Why it matters
 
@@ -38,7 +48,7 @@ The public chain learns the outcome it must enforce, not the private values used
 | Network | Solana devnet + MagicBlock hosted TEE |
 | Program | [`E2jB…kRDEh`](https://explorer.solana.com/address/E2jBtfWynBhkA7yxXfNFPrhpKuEZwweuvb1GDNzkRDEh?cluster=devnet) |
 | Upgrade authority | Fresh local devnet-only wallet (not committed) |
-| Access model | Organizer-granted wallet role required for participant or supplier actions |
+| Access model | One-time claim link required for participant or deal-option actions |
 | Full lifecycle evidence | [HOSTED_DEVNET_PROOF.md](HOSTED_DEVNET_PROOF.md) — archival proof for the prior deployment |
 
 The current deployment contains the full role-enforcement program. The recorded hosted lifecycle covers two-wallet privacy denial, outcome-only allocation, settlement, three refunds, and two prototype receipts on the prior deployment; reproducible details live in [TEST_RESULTS.md](TEST_RESULTS.md).

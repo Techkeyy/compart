@@ -8,7 +8,7 @@ beachhead: commitment rooms for event accommodation and group stays.
 The initial demo is a group of friends trying to book shared accommodation for a
 festival. Each person privately states the most they can afford and commits funds.
 The public room shows whether the group is close to being viable, without exposing
-any individual's budget. Hosts or suppliers submit group quotes. A booking settles
+any individual's budget. Deal-option publishers submit group quotes. A booking settles
 only when one quote fits enough committed participants; otherwise everyone can be
 refunded.
 
@@ -73,20 +73,30 @@ The demo must visibly prove three things:
 
 ## Hackathon fit
 
-Solana Blitz v7 theme: **Collaboration**.
+The published Blitz brief is:
+
+- **Theme:** Collaboration.
+- **Eligibility:** every submission must integrate MagicBlock's Ephemeral Rollup.
+- **Judging:** creativity, technical depth, and how compellingly the project
+  showcases what is possible on Solana.
 
 Compart crosses the requirements as follows:
 
-| Requirement or judging signal | Compart evidence |
+| Published requirement or judging lens | Compart evidence |
 | --- | --- |
 | Collaboration | Several participants jointly determine whether one booking becomes possible. |
-| Ephemeral Rollup integration | Participant bid accounts are delegated to MagicBlock's hosted TEE; authenticated private writes and allocation computation execute there. |
+| **Eligibility — MagicBlock Ephemeral Rollup** | Participant bid accounts are delegated to MagicBlock's hosted TEE; authenticated private writes and allocation computation execute there. |
 | Private ER integration | Each participant's maximum budget is isolated inside a permissioned private account. |
 | Meaningful use of MagicBlock | Privacy prevents social pressure and price discrimination; real-time updates make the room feel live; neither is decorative. |
 | Solana integration | Deposits, final payment, refunds, and booking receipts settle on Solana. |
 | Creativity | The product coordinates demand before a purchase instead of merely tracking debts afterward. |
 | Technical depth | Private state, public aggregate state, threshold clearing, escrow invariants, ER lifecycle, and base-layer settlement are shown end to end. |
-| Compelling demo | Three participant views, two competing quotes, one automatic outcome, and one verifiable Explorer transaction. |
+| Compelling Solana showcase | One live room, private budget proof, onchain outcome, refund, receipt, and Explorer trail. |
+
+The deal-option publisher is only the payout role for the selected group option;
+it is not a MagicBlock requirement. The essential hackathon proof is collaborative
+coordination, Private ER budget storage, ER delegation/private matching, and
+Solana settlement.
 
 Submission evidence required:
 
