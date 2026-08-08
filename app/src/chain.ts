@@ -76,6 +76,7 @@ const bidSeed = text("bid");
 const privateBudgetSeed = text("private-budget");
 const offerSeed = text("offer");
 const receiptSeed = text("receipt");
+const accessSeed = text("access");
 
 export const baseConnection = new Connection(BASE_RPC, "confirmed");
 
@@ -88,6 +89,10 @@ function u16Le(value: number): Uint8Array {
   const data = new Uint8Array(2);
   new DataView(data.buffer).setUint16(0, value, true);
   return data;
+}
+
+function u8(value: number): Uint8Array {
+  return new Uint8Array([value]);
 }
 
 function u64Le(value: bigint): Uint8Array {
@@ -525,12 +530,17 @@ export async function createPrivateCommitment(
     [privateBudgetSeed, bid.toBytes()],
     PROGRAM_ID,
   );
+  const [access] = PublicKey.findProgramAddressSync(
+    [accessSeed, campaignAddress.toBytes(), buyer.toBytes()],
+    PROGRAM_ID,
+  );
 
   const createBid = new TransactionInstruction({
     programId: PROGRAM_ID,
     keys: [
       { pubkey: buyer, isSigner: true, isWritable: true },
       { pubkey: campaignAddress, isSigner: false, isWritable: true },
+      { pubkey: access, isSigner: false, isWritable: false },
       { pubkey: bid, isSigner: false, isWritable: true },
       { pubkey: treasury, isSigner: false, isWritable: true },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
@@ -703,11 +713,16 @@ export async function postSupplierOffer(
     [offerSeed, campaignAddress.toBytes(), supplier.toBytes()],
     PROGRAM_ID,
   );
+  const [access] = PublicKey.findProgramAddressSync(
+    [accessSeed, campaignAddress.toBytes(), supplier.toBytes()],
+    PROGRAM_ID,
+  );
   const instruction = new TransactionInstruction({
     programId: PROGRAM_ID,
     keys: [
       { pubkey: supplier, isSigner: true, isWritable: true },
       { pubkey: campaignAddress, isSigner: false, isWritable: true },
+      { pubkey: access, isSigner: false, isWritable: false },
       { pubkey: offer, isSigner: false, isWritable: true },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ],
@@ -716,6 +731,34 @@ export async function postSupplierOffer(
       u16Le(quantity),
       u64Le(unitPrice),
     ),
+  });
+  return sendWithWallet(baseConnection, wallet, new Transaction().add(instruction));
+}
+
+export async function grantRoomAccess(
+  wallet: BrowserWallet,
+  memberAddress: string,
+  role: "participant" | "host",
+  selectedCampaign?: PublicKey | string | null,
+): Promise<string> {
+  if (!wallet.publicKey) throw new Error("Connect the organizer wallet first.");
+  const campaignAddress = resolveCampaignAddress(selectedCampaign);
+  if (!campaignAddress) throw new Error("Choose a room first.");
+  const member = new PublicKey(memberAddress.trim());
+  const [access] = PublicKey.findProgramAddressSync(
+    [accessSeed, campaignAddress.toBytes(), member.toBytes()],
+    PROGRAM_ID,
+  );
+  const instruction = new TransactionInstruction({
+    programId: PROGRAM_ID,
+    keys: [
+      { pubkey: wallet.publicKey, isSigner: true, isWritable: true },
+      { pubkey: campaignAddress, isSigner: false, isWritable: false },
+      { pubkey: member, isSigner: false, isWritable: false },
+      { pubkey: access, isSigner: false, isWritable: true },
+      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+    ],
+    data: instructionData(await discriminator("grant_room_access"), u8(role === "participant" ? 1 : 2)),
   });
   return sendWithWallet(baseConnection, wallet, new Transaction().add(instruction));
 }

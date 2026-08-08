@@ -18,12 +18,12 @@ and **Join with invite**.
 ### 0:12–0:27 — Create and invite
 
 Show a prepared room or create one with a group size, equal deposit, deadline,
-and simple prototype terms. In the organizer view, show **Copy participant
-invite** and **Copy supplier invite**.
+and simple prototype terms. In the organizer view, paste each recipient wallet,
+choose **Participant** or **Supplier**, and use **Grant access and copy invite**.
 
-> The organizer sends one invitation to the group and another to selected property
-> hosts. They are coordinating one private purchase room—not broadcasting demand to
-> the internet.
+> The organizer grants the exact wallet the exact job before sharing the link: one
+> invitation for the group and another for selected property hosts. The program itself
+> rejects a quote from a participant wallet or a commitment from an uninvited wallet.
 
 ### 0:27–0:45 — Private commitment
 

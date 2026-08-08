@@ -122,6 +122,8 @@ Submission evidence required:
   joined, or received a receipt from.
 - Organizers can create unlisted rooms on devnet and copy distinct participant and
   supplier invitations. Public accommodation details travel with the shared link.
+- Organizers grant each invited wallet an onchain participant or supplier role before
+  sharing its matching invitation; the program rejects cross-role and uninvited actions.
 - Participant, host, and organizer workspaces are separated, with creator-wallet
   verification protecting organizer settlement controls.
 - The participant flow implements the public deposit, account delegation,

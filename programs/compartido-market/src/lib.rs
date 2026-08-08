@@ -28,6 +28,9 @@ pub const BID_SEED: &[u8] = b"bid";
 pub const PRIVATE_BUDGET_SEED: &[u8] = b"private-budget";
 pub const OFFER_SEED: &[u8] = b"offer";
 pub const RECEIPT_SEED: &[u8] = b"receipt";
+pub const ACCESS_SEED: &[u8] = b"access";
+pub const PARTICIPANT_ACCESS: u8 = 1;
+pub const SUPPLIER_ACCESS: u8 = 2;
 pub const MAX_BIDS: u16 = 25;
 pub const MAX_OFFERS: u8 = 3;
 
@@ -95,6 +98,24 @@ pub mod compartido_market {
             deposit_cap,
             deadline,
         });
+        Ok(())
+    }
+
+    /// The organizer grants a wallet one explicit role before sharing its invite.
+    pub fn grant_room_access(ctx: Context<GrantRoomAccess>, permissions: u8) -> Result<()> {
+        require!(
+            permissions == PARTICIPANT_ACCESS || permissions == SUPPLIER_ACCESS,
+            CompartidoError::InvalidAccessRole
+        );
+        require!(
+            ctx.accounts.campaign.status == CampaignStatus::Open,
+            CompartidoError::CampaignNotOpen
+        );
+        let access = &mut ctx.accounts.access;
+        access.campaign = ctx.accounts.campaign.key();
+        access.member = ctx.accounts.member.key();
+        access.permissions = permissions;
+        access.bump = ctx.bumps.access;
         Ok(())
     }
 
@@ -949,11 +970,40 @@ pub struct InitializeCampaign<'info> {
 }
 
 #[derive(Accounts)]
+pub struct GrantRoomAccess<'info> {
+    #[account(mut)]
+    pub creator: Signer<'info>,
+    #[account(
+        constraint = campaign.creator == creator.key() @ CompartidoError::WrongCreator,
+    )]
+    pub campaign: Account<'info, Campaign>,
+    /// CHECK: The invited wallet need not sign or exist before the grant is created.
+    pub member: UncheckedAccount<'info>,
+    #[account(
+        init,
+        payer = creator,
+        space = RoomAccess::SPACE,
+        seeds = [ACCESS_SEED, campaign.key().as_ref(), member.key().as_ref()],
+        bump
+    )]
+    pub access: Account<'info, RoomAccess>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
 pub struct CreateBid<'info> {
     #[account(mut)]
     pub buyer: Signer<'info>,
     #[account(mut)]
     pub campaign: Account<'info, Campaign>,
+    #[account(
+        seeds = [ACCESS_SEED, campaign.key().as_ref(), buyer.key().as_ref()],
+        bump = access.bump,
+        constraint = access.campaign == campaign.key() @ CompartidoError::WrongCampaign,
+        constraint = access.member == buyer.key() @ CompartidoError::WrongBuyer,
+        constraint = access.permissions == PARTICIPANT_ACCESS @ CompartidoError::ParticipantAccessRequired,
+    )]
+    pub access: Account<'info, RoomAccess>,
     #[account(
         init,
         payer = buyer,
@@ -1161,6 +1211,14 @@ pub struct PostSupplierOffer<'info> {
     #[account(mut)]
     pub campaign: Account<'info, Campaign>,
     #[account(
+        seeds = [ACCESS_SEED, campaign.key().as_ref(), supplier.key().as_ref()],
+        bump = access.bump,
+        constraint = access.campaign == campaign.key() @ CompartidoError::WrongCampaign,
+        constraint = access.member == supplier.key() @ CompartidoError::WrongSupplier,
+        constraint = access.permissions == SUPPLIER_ACCESS @ CompartidoError::SupplierAccessRequired,
+    )]
+    pub access: Account<'info, RoomAccess>,
+    #[account(
         init,
         payer = supplier,
         space = SupplierOffer::SPACE,
@@ -1322,6 +1380,18 @@ pub struct SupplierOffer {
     pub bump: u8,
 }
 
+#[account]
+pub struct RoomAccess {
+    pub campaign: Pubkey,
+    pub member: Pubkey,
+    pub permissions: u8,
+    pub bump: u8,
+}
+
+impl RoomAccess {
+    pub const SPACE: usize = 8 + 32 + 32 + 1 + 1;
+}
+
 impl SupplierOffer {
     pub const SPACE: usize = 8 + 32 + 32 + 2 + 8 + 1 + 8 + 1;
 }
@@ -1420,6 +1490,12 @@ pub enum CompartidoError {
     InvalidQuantity,
     #[msg("Price must be greater than zero")]
     InvalidPrice,
+    #[msg("Choose a participant or supplier access role")]
+    InvalidAccessRole,
+    #[msg("This wallet has not been invited as a participant")]
+    ParticipantAccessRequired,
+    #[msg("This wallet has not been invited as a supplier")]
+    SupplierAccessRequired,
     #[msg("The campaign is not open")]
     CampaignNotOpen,
     #[msg("The campaign is closed")]
