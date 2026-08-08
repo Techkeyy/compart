@@ -582,7 +582,7 @@ export default function LiveApp() {
   const targetQuantity = campaign?.targetQuantity || 1;
   const progressPercent = Math.min(100, Math.round((memberCount / targetQuantity) * 100));
   const budgetCap = campaign ? displayAmount(campaign.depositCap) : 1;
-  const budgetFloor = Math.min(1, budgetCap);
+  const budgetFloor = Math.min(0.001, budgetCap);
   const budgetPercent = budgetCap <= budgetFloor ? 100 : Math.round(((maxBudget - budgetFloor) / (budgetCap - budgetFloor)) * 100);
   const deadlineReached = campaign ? now >= campaign.deadline : false;
   const isOrganizer = Boolean(campaign && walletAddress === campaign.creator);
