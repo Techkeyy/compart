@@ -24,8 +24,10 @@ export type SolanaNetwork = "devnet" | "mainnet-beta";
 
 export type BrowserWallet = {
   publicKey?: PublicKey;
-  connect: () => Promise<{ publicKey: PublicKey | string }>;
+  connect: (options?: { onlyIfTrusted?: boolean }) => Promise<{ publicKey: PublicKey | string }>;
   disconnect?: () => Promise<void>;
+  isConnected?: boolean;
+  request?: (input: { method: string; params?: unknown }) => Promise<unknown>;
   signTransaction: (transaction: Transaction) => Promise<Transaction>;
   signMessage: (
     message: Uint8Array,
@@ -166,7 +168,46 @@ export async function connectBrowserWallet(): Promise<BrowserWallet> {
   if (!provider) {
     throw new Error("No Solana wallet found. Install Phantom or Solflare to continue.");
   }
-  const response = await provider.connect();
+  const providerName = provider === window.phantom?.solana
+    ? "Phantom"
+    : provider === window.solflare
+      ? "Solflare"
+      : "Solana wallet";
+  let response: { publicKey: PublicKey | string };
+  try {
+    // Phantom keeps the approved public key on its injected provider after a
+    // reload. Reusing it avoids a second connect request that some extension
+    // versions reject with only "Unexpected error".
+    response = provider.publicKey
+      ? { publicKey: provider.publicKey }
+      : await provider.connect({ onlyIfTrusted: false });
+  } catch (connectError) {
+    try {
+      if (typeof provider.request !== "function") throw connectError;
+      const requested = await provider.request({ method: "connect" }) as { publicKey?: PublicKey | string } | null;
+      const requestedPublicKey = requested?.publicKey || provider.publicKey;
+      if (!requestedPublicKey) throw connectError;
+      response = { publicKey: requestedPublicKey };
+    } catch (requestError) {
+      const source = requestError && typeof requestError === "object" && "message" in requestError
+        ? String(requestError.message)
+        : connectError && typeof connectError === "object" && "message" in connectError
+          ? String(connectError.message)
+          : "Unknown provider error";
+      const code = requestError && typeof requestError === "object" && "code" in requestError
+        ? Number(requestError.code)
+        : connectError && typeof connectError === "object" && "code" in connectError
+          ? Number(connectError.code)
+          : 0;
+      if (code === 4001 || /reject|cancel/i.test(source)) {
+        throw new Error(`${providerName} connection was cancelled. Approve the request in the wallet to continue.`);
+      }
+      if (/unexpected error/i.test(source)) {
+        throw new Error(`${providerName} could not open the connection. Unlock the extension, reload this page, and try once more.`);
+      }
+      throw new Error(`${providerName} connection failed: ${source}`);
+    }
+  }
   const returnedPublicKey = response?.publicKey || provider.publicKey;
   if (!returnedPublicKey) throw new Error("The wallet connected without returning an account.");
   const publicKey = returnedPublicKey instanceof PublicKey
