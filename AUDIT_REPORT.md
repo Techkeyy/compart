@@ -29,7 +29,7 @@ The repository is clean enough for a hackathon demo and the corrected program is
 - Frontend production dependency audit: no high or critical advisories; 2 low and 4 moderate transitive advisories remain in the Solana/MagicBlock dependency graph. The automated forced fixes propose incompatible downgrades and were not applied.
 - Secret-pattern and repository-hygiene scans found no committed wallet keypair or environment secret. Keypair and environment patterns remain ignored.
 - Desktop landing page and mobile live-app lobby were visually inspected. At Chrome's true 500 px headless viewport, the page had no horizontal overflow and all primary controls were readable.
-- The wallet button was browser-tested with simulated Phantom-compatible providers, including a fresh connection, an already-authorized reload, and request-API recovery after Phantom's generic error; every successful path changed to the connected address and displayed confirmation. The missing-provider path displayed an accessible error and Phantom installation link.
+- The wallet adapter now completes the injected provider's `connect()` handshake before exposing a connected account, preventing a cached address from creating a false signing session. The missing-provider path was browser-tested and displays an accessible error and Phantom installation link.
 - Anchor generated the current JSON and TypeScript IDLs, including `prepare_cancellation`.
 - Audited program artifact SHA-256: `e44d4f16a95139df00853abe2dd180dc43f944d375aeb3dc973a85c44a1daa9e`.
 - Existing devnet program upgraded successfully: `E2jBtfWynBhkA7yxXfNFPrhpKuEZwweuvb1GDNzkRDEh`.
