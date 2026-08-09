@@ -1169,9 +1169,20 @@ export async function runOrganizerSettlement(
           u64Le(room.campaign.campaignId),
         ),
       });
-      signatures.push(
-        await sendWithWallet(baseConnection, wallet, new Transaction().add(delegateInstruction)),
-      );
+      try {
+        signatures.push(
+          await sendWithWallet(baseConnection, wallet, new Transaction().add(delegateInstruction)),
+        );
+      } catch (error) {
+        // Delegation can land on Solana before the RPC reports its final result.
+        // Re-read the account so a completed handoff resumes instead of being
+        // presented as a failed settlement that the organizer must repeat.
+        const refreshedCampaign = await baseConnection.getAccountInfo(
+          campaignAddress,
+          "confirmed",
+        );
+        if (!refreshedCampaign?.owner.equals(DELEGATION_PROGRAM_ID)) throw error;
+      }
     } else if (!campaignInfo.owner.equals(DELEGATION_PROGRAM_ID)) {
       throw new Error("The room account has an unexpected owner.");
     }
