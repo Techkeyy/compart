@@ -634,7 +634,17 @@ export async function createPrivateCommitment(
     baseSignature = await sendWithWallet(
       baseConnection,
       wallet,
-      new Transaction().add(createBid, delegateBid),
+      new Transaction().add(createBid),
+    );
+
+    // The delegation program snapshots the completed base-layer account.
+    // Confirm creation before handing the commitment to the Private ER; doing
+    // both in one transaction can copy an account that the ER cannot decode.
+    onProgress?.("delegating");
+    baseSignature = await sendWithWallet(
+      baseConnection,
+      wallet,
+      new Transaction().add(delegateBid),
     );
   } else if (existingBid.owner.equals(PROGRAM_ID)) {
     onProgress?.("delegating");
