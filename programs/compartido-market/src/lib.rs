@@ -23,7 +23,7 @@ use ephemeral_rollups_sdk::{
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 
-declare_id!("E2jBtfWynBhkA7yxXfNFPrhpKuEZwweuvb1GDNzkRDEh");
+declare_id!("BaxzdeGdxpnNELYZtXX9s1zNzTvdNNKWqFyDYpzz2WpJ");
 
 pub const CAMPAIGN_SEED: &[u8] = b"campaign";
 pub const TREASURY_SEED: &[u8] = b"treasury";

@@ -131,7 +131,7 @@ Submission evidence required:
 
 - Official MagicBlock private-counter reference builds successfully in WSL.
 - Compart's Anchor market core builds to an SBPF program and generates an IDL.
-- Current devnet program ID: `E2jBtfWynBhkA7yxXfNFPrhpKuEZwweuvb1GDNzkRDEh`.
+- Current devnet program ID: `BaxzdeGdxpnNELYZtXX9s1zNzTvdNNKWqFyDYpzz2WpJ`.
 - `PrivateBudget` exists only inside the Private ER; the public commitment contains
   no maximum price and every buyer deposits the same public cap.
 - The full local Private ER lifecycle passes with three buyers and two suppliers.

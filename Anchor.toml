@@ -6,10 +6,10 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-compartido_market = "E2jBtfWynBhkA7yxXfNFPrhpKuEZwweuvb1GDNzkRDEh"
+compartido_market = "BaxzdeGdxpnNELYZtXX9s1zNzTvdNNKWqFyDYpzz2WpJ"
 
 [programs.devnet]
-compartido_market = "E2jBtfWynBhkA7yxXfNFPrhpKuEZwweuvb1GDNzkRDEh"
+compartido_market = "BaxzdeGdxpnNELYZtXX9s1zNzTvdNNKWqFyDYpzz2WpJ"
 
 [provider]
 cluster = "devnet"

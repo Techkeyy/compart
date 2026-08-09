@@ -46,7 +46,7 @@ let activeWalletProvider: BrowserWallet | null = null;
 const text = (value: string) => new TextEncoder().encode(value);
 
 export const PROGRAM_ID = new PublicKey(
-  "E2jBtfWynBhkA7yxXfNFPrhpKuEZwweuvb1GDNzkRDEh",
+  "BaxzdeGdxpnNELYZtXX9s1zNzTvdNNKWqFyDYpzz2WpJ",
 );
 // Circle's official Solana devnet USDC. Rooms created by this release escrow
 // this SPL token; SOL remains only the wallet's network-fee currency.

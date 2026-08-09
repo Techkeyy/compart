@@ -2,7 +2,7 @@
 
 ### Private group checkout for plans that only work when enough people commit
 
-[**Launch the live app**](https://compart-mocha.vercel.app/) · [GitHub Pages mirror](https://techkeyy.github.io/compart/) · [View the Solana program](https://explorer.solana.com/address/E2jBtfWynBhkA7yxXfNFPrhpKuEZwweuvb1GDNzkRDEh?cluster=devnet) · [Watch the demo](./DEMO_SCRIPT.md)
+[**Launch the live app**](https://compart-mocha.vercel.app/) · [GitHub Pages mirror](https://techkeyy.github.io/compart/) · [View the Solana program](https://explorer.solana.com/address/BaxzdeGdxpnNELYZtXX9s1zNzTvdNNKWqFyDYpzz2WpJ?cluster=devnet) · [Watch the demo](./DEMO_SCRIPT.md)
 
 Compart helps friends coordinate a shared purchase without turning a group chat into a public comparison of everyone’s budget.
 
@@ -105,12 +105,12 @@ The current matcher uses private maxima to decide who can cover **one equal shar
 The Solana devnet program is deployed at:
 
 ```text
-E2jBtfWynBhkA7yxXfNFPrhpKuEZwweuvb1GDNzkRDEh
+BaxzdeGdxpnNELYZtXX9s1zNzTvdNNKWqFyDYpzz2WpJ
 ```
 
-At the time of this README update, the public Solana deployment contains the current program, but MagicBlock’s hosted devnet TEE is serving an older cloned executable. New public room creation, USDC deposits, and commitment delegation succeed; the private-budget instruction currently fails with Anchor error `0xbbb` because the stale executable cannot deserialize the upgraded campaign layout.
+The current program was deployed under a fresh devnet address after MagicBlock's hosted TEE retained an obsolete executable for the previous address. Solana reports the new 638,272-byte program, and MagicBlock exposes a fresh Loader v4 clone instead of the retired 554,072-byte executable that caused Anchor error `0xbbb`.
 
-This is a verified environment/version mismatch, not a wallet-balance or invitation error. End-to-end private settlement should not be presented as currently healthy until the TEE clone has refreshed and a new-room lifecycle test passes. See [AUDIT_REPORT.md](./AUDIT_REPORT.md) for the latest verification notes.
+The repository tests and production frontend build pass against the fresh address. Because devnet rooms are tied to their program address, rooms created under the retired deployment are historical test data. Create a new room for acceptance testing. See [AUDIT_REPORT.md](./AUDIT_REPORT.md) for the deployment evidence and remaining prototype limitations.
 
 ## Architecture
 

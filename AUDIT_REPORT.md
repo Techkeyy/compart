@@ -5,7 +5,7 @@ Scope: repository history and hygiene, frontend, Anchor program, generated artif
 
 ## Verdict
 
-The repository is structurally clean and its deterministic checks pass, but the hosted devnet experience is **not currently ready for an end-to-end demo**. Solana devnet contains the upgraded program and new public rooms can accept USDC commitments, while MagicBlock's hosted TEE is executing an older cloned program. That version mismatch blocks the private-budget instruction with Anchor error `0xbbb`. Do not record or present the private matching flow as healthy until the TEE executable refreshes and a fresh two-wallet lifecycle succeeds.
+The repository is structurally clean, its deterministic checks pass, and the stale MagicBlock executable that caused Anchor error `0xbbb` has been removed from the active deployment path. Compart now uses a fresh Solana devnet program address, and MagicBlock exposes a fresh Loader v4 clone for that address. A new two-wallet room remains the final hosted acceptance run before recording the demo.
 
 ## Material findings fixed
 
@@ -33,14 +33,14 @@ The repository is structurally clean and its deterministic checks pass, but the 
 - Participant commitments now confirm the public USDC deposit before delegating the account to MagicBlock. This matches the intended lifecycle ordering, but it does not resolve the current hosted TEE executable mismatch.
 - Organizer settlement re-checks the campaign owner after a reported delegation failure. If Solana already records the MagicBlock handoff, the flow resumes at private verification instead of displaying a false step-two failure.
 - Anchor generated the current JSON and TypeScript IDLs, including `prepare_cancellation`.
-- Audited program artifact SHA-256: `e44d4f16a95139df00853abe2dd180dc43f944d375aeb3dc973a85c44a1daa9e`.
-- Existing devnet program upgraded successfully: `E2jBtfWynBhkA7yxXfNFPrhpKuEZwweuvb1GDNzkRDEh`.
-- Upgrade transaction: `2ZL2BdgFCW8xDSCTV7GkepBzwVf1HGpwH1yAjM1KR7adCYmEAq1dUidiDDodKFMcFTEb4RhSR5XsVvuQrD8bR9AX`.
-- Deployed slot: `482213118`.
-- A program dump matched every local artifact byte; the remaining 7,248 allocated bytes were all zero padding.
+- Audited fresh program artifact SHA-256: `5ece2cd2b7d2327de89333d916cdab911bc488ee98c387fa68586563536c203e`.
+- Current devnet program: `BaxzdeGdxpnNELYZtXX9s1zNzTvdNNKWqFyDYpzz2WpJ`.
+- Deployment transaction: `58WqomWFbLrr7oaz9fPzNZG9VZoVVn7fq1iBZ8n4X5VMq4ZVv6d9bFdhonWNcDSRqHDtiKdYVjbBghV7Z6vvDrxW`.
+- Deployed slot: `482409811`.
+- Solana reports a 638,272-byte program, and MagicBlock exposes a fresh 638,320-byte Loader v4 representation for the new address. The retired address remains historical devnet state.
 - The current public room and delegated commitment accounts were read successfully from both Solana devnet and the TEE RPC with valid Anchor discriminators and expected lengths.
 - The private-budget PDA did not yet exist when `place_private_budget` failed, isolating the error to execution-time account deserialization rather than an already-initialized private account.
-- Solana devnet reports the current upgradeable program deployment, while the TEE exposes a different Loader v4 executable representation whose size does not match the current local artifact. Repeated public-RPC redeploy attempts were rate-limited before a refresh could complete.
+- The retired program address reproduced the hosted-validator cache mismatch: its ProgramData updated while its 554,072-byte Loader v4 executable did not. Migrating to the fresh program address forced a new MagicBlock clone and removed that stale executable from the active application path.
 
 ## Confirmed non-issues
 
@@ -50,8 +50,7 @@ The repository is structurally clean and its deterministic checks pass, but the 
 
 ## Current blocker and remaining limitations
 
-- **Current blocker:** MagicBlock's devnet TEE must refresh the cloned Compart executable before private maximums and settlement can be accepted. Public room creation and USDC deposits succeeding does not prove the private lifecycle.
-- The current goal-range workflow does not yet have a new automated hosted two-wallet lifecycle runner. The archived runners describe an older supplier workflow and are not accepted as current proof. Perform one fresh organizer-plus-participant stress test only after the executable mismatch is resolved.
+- The current goal-range workflow does not yet have a new automated hosted two-wallet lifecycle runner. The archived runners describe an older supplier workflow and are not accepted as current proof. Perform one fresh organizer-plus-participant stress test against the new program before recording the demo.
 - Cancellation still requires MagicBlock's private runtime to be reachable long enough to prepare and return delegated accounts. A total Private ER outage cannot be bypassed by this prototype.
 - A room coordinates and settles prototype funds; it does not reserve real inventory, enforce delivery, resolve disputes, or create a legally binding purchase.
 - Room descriptive metadata is shared in invitation URLs and cached locally, while money, membership, status, outcomes, refunds, and receipts are authoritative on-chain. Production use needs durable shared metadata storage.

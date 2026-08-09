@@ -1,12 +1,13 @@
 # Test Results
 
-> **Historical proof archive.** The lifecycle results below were produced by the retired supplier prototype at program `9f6nQaRukJ7Gd4ks3ypRyWDe8eSm3V1EHbmoHwLm3HTs`. They do not prove the current program `E2jBtfWynBhkA7yxXfNFPrhpKuEZwweuvb1GDNzkRDEh`. See `AUDIT_REPORT.md` for current, reproducible checks.
+> **Historical proof archive.** The lifecycle results below were produced by the retired supplier prototype at program `9f6nQaRukJ7Gd4ks3ypRyWDe8eSm3V1EHbmoHwLm3HTs`. They do not prove the current program `BaxzdeGdxpnNELYZtXX9s1zNzTvdNNKWqFyDYpzz2WpJ`. See `AUDIT_REPORT.md` for current, reproducible checks.
 
 ## Current result
 
-The outcome-only privacy design passes locally and on hosted devnet against the
-full MagicBlock stack. The verified artifact, live public campaign, hosted
-two-wallet privacy proof, settlement, refunds, and receipts are complete.
+The historical outcome-only privacy design passed the archived lifecycle below.
+The current goal-range workflow passes its Rust tests and production build, and
+its fresh program is visible on both Solana devnet and MagicBlock. A new hosted
+two-wallet acceptance run is still required for current end-to-end proof.
 
 ## Rust allocation tests — passed
 
